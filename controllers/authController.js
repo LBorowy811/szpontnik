@@ -1,45 +1,52 @@
-const fs = require('fs');
-const path = require('path');
-const usersFilePath = path.join(__dirname, '../data/users.json');
+const connectToDatabase = require('../database/database');
 
-function loadUsers() {
-  const data = fs.readFileSync(usersFilePath, 'utf8');
-  return JSON.parse(data);
-}
-
-function saveUsers(users) {
-  fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2));
-}
-
-exports.register = (req, res) => {
+//rejestracja
+exports.register = async (req, res) => {
   const { login, password, username } = req.body;
 
   if (!login || !password || !username) {
     return res.status(400).json({ message: 'Wszystkie pola są wymagane.' });
   }
 
-  const users = loadUsers();
+  try {
+    const db = await connectToDatabase();
 
-  if (users.find(u => u.login === login)) {
-    return res.status(400).json({ message: 'Użytkownik o takim loginie już istnieje.' });
+    const existingUser = await db.get('SELECT * FROM users WHERE login = ?', [login]);
+    if (existingUser) {
+      return res.status(400).json({ message: 'Użytkownik o takim loginie już istnieje.' });
+    }
+
+    await db.run(
+      'INSERT INTO users (login, password, username) VALUES (?, ?, ?)',
+      [login, password, username]
+    );
+
+    res.status(201).json({ message: 'Rejestracja zakończona sukcesem!' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Błąd serwera.' });
   }
-
-  const newUser = { id: Date.now(), login, password, username };
-  users.push(newUser);
-  saveUsers(users);
-
-  res.status(201).json({ message: 'Rejestracja zakończona sukcesem!' });
 };
 
-exports.login = (req, res) => {
+//logowanie
+exports.login = async (req, res) => {
   const { login, password } = req.body;
 
-  const users = loadUsers();
-  const user = users.find(u => u.login === login && u.password === password);
+  try {
+    const db = await connectToDatabase();
 
-  if (!user) {
-    return res.status(401).json({ message: 'Nieprawidłowy login lub hasło.' });
+    const user = await db.get(
+      'SELECT * FROM users WHERE login = ? AND password = ?',
+      [login, password]
+    );
+
+    if (!user) {
+      return res.status(401).json({ message: 'Nieprawidłowy login lub hasło.' });
+    }
+
+    res.json({ message: `Witaj, ${user.username}!`, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Błąd serwera.' });
   }
-
-  res.json({ message: `Witaj, ${user.username}!`, user });
 };
