@@ -1,5 +1,12 @@
 @import './base.css';
 
+:root {
+  --bg-color: #222222;
+  --active-item: #333333;
+  --font-color: #f1f5f9;
+  --active-item: #42b883;
+}
+
 #app {
   max-width: 1280px;
   margin: 0 auto;
