@@ -82,7 +82,7 @@
 button {
   background: none;
   border: 2px solid transparent;
-  padding: 6px;
+  padding: 4px;
   font-family: inherit;
   font-size: inherit;
   color: var(--font-color);

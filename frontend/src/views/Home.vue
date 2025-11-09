@@ -70,3 +70,13 @@ const games = [
   text-align: center;
 }
 </style>
+
+<style>
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #42b88372;
+}
+</style>

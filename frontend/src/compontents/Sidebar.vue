@@ -80,5 +80,10 @@
 .icon {
   width: 32px;
   height: 32px;
+  filter: brightness(0) invert(1);
+}
+
+.menu-item:hover .icon {
+  filter: invert(62%) sepia(41%) saturate(749%) hue-rotate(96deg) brightness(92%) contrast(89%);
 }
 </style>
