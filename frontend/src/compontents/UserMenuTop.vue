@@ -8,7 +8,7 @@
       <div class="middle">
         gry online, zagraj z innymi osobami
       </div>
-      <button>Zaloguj się</button>
+  <router-link to="/login"><button>Zaloguj się</button></router-link>
     </div>
   </div>
 </template>

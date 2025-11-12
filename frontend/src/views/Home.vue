@@ -7,6 +7,9 @@
       </div>
     </div>
   </div>
+  <div style="margin: 1rem;">
+    <router-link to="/login">Zaloguj się</router-link>
+  </div>
 </template>
 
 <script setup>
