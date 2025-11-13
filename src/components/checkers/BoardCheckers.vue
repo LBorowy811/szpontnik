@@ -1,0 +1,40 @@
+<!-- src/components/checkers/BoardCheckers.vue -->
+<template>
+  <BaseBoard
+    :rows="8"
+    :cols="8"
+    :labels="labels"
+    :pieces="usedPieces"
+    @pieceClick="onPieceClick"
+  >
+    <template #piece="{ piece }">
+      <Piece :color="piece.color" />
+    </template>
+  </BaseBoard>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import BaseBoard from '@/components/common/BaseBoard.vue'
+import Piece from '@/components/checkers/Piece.vue'
+import { makeCheckersStartPieces } from './checkersStartPieces'
+
+const props = defineProps({
+  pieces: { type: Array, default: null }
+})
+const emit = defineEmits(['pieceClick', 'movePiece'])
+
+const labels = {
+  cols: ['1','2','3','4','5','6','7','8'],
+  rows: ['1','2','3','4','5','6','7','8']
+}
+
+const usedPieces = computed(() => props.pieces ?? makeCheckersStartPieces())
+
+function onPieceClick(p){
+  emit('pieceClick', p)
+}
+</script>
+
+<style scoped>
+</style>

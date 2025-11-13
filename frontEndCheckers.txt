@@ -1,0 +1,15 @@
+FRONTENDU CHECKERS – SKRÓT
+	- CheckersView.vue - główny widok gry
+	- Board.vue - wyświetla planszę i pionki
+	- ChatPanel.vue - czat między graczami
+	- Square.vue / Piece.vue - pojedyncze pola i pionki
+	- gameId - identyfikator gry (np. test-001)
+	- score.left / score.right - aktualny wynik
+	- moves[] - historia ruchów (zawiera gracza, współrzędne, typ ruchu, czas)
+	- messages[] - lista wiadomości czatu (author, text, time)
+	- pieces[] - aktualny układ pionków na planszy
+	- emit('movePiece', { gameId, from, to, player }) - ruch gracza
+	- emit('send', { gameId, text, time }) - wiadomość czatu
+
+Nie wiem kto ale ktoś se kurwa wykorzystaj cos do czegos
+
