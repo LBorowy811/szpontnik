@@ -35,7 +35,6 @@ export default {
       value: null,
       rotX: -20,
       rotY: 20,
-      // internal end-target rotations for chosen face
       targetRot: { x: -20, y: 20 }
     };
   },
@@ -43,10 +42,9 @@ export default {
     rollDice() {
       if (this.rolling) return;
       this.rolling = true;
-      // losuj 1..6
       const val = Math.floor(Math.random() * 6) + 1;
       this.value = null; // ukryj do czasu zakończenia animacji
-      // ustaw docelową orientację dla wylosowanej ścianki
+
       const map = {
         1: { x: 0, y: 0 },
         2: { x: 0, y: -90 },
@@ -55,15 +53,13 @@ export default {
         5: { x: -90, y: 0 },
         6: { x: 90, y: 0 }
       };
-      // dodaj pełne obroty dla ładniejszej animacji
+
       const turnsX = 360 * (2 + Math.floor(Math.random() * 2));
       const turnsY = 360 * (2 + Math.floor(Math.random() * 2));
       const target = map[val];
       this.targetRot.x = target.x + turnsX;
       this.targetRot.y = target.y + turnsY;
 
-      // zastosuj transform (z CSS transition zmieni się płynnie)
-      // mały timeout żeby rozpocząć transition po nadaniu klasy rolling (dla efektu)
       this.$nextTick(() => {
         requestAnimationFrame(() => {
           this.rotX = this.targetRot.x;
@@ -71,10 +67,8 @@ export default {
         });
       });
 
-      // zapamiętaj wynik żeby ustawić po zakończeniu animacji
       this._pendingValue = val;
 
-      // safety: jeśli animationend nie zadziała, ustaw timeout
       clearTimeout(this._safetyTimeout);
       this._safetyTimeout = setTimeout(() => {
         this.finishRoll();
@@ -109,7 +103,6 @@ export default {
   user-select: none;
 }
 
-/* przycisk */
 .roll-btn {
   background: linear-gradient(180deg,#fff 0%,#f0f0f0 100%);
   border: 0;
@@ -123,7 +116,6 @@ export default {
 .roll-btn:active { transform: translateY(1px) scale(.995); }
 .roll-btn[disabled] { opacity: 0.7; cursor: default; }
 
-/* scena 3D */
 .cube-stage {
   width: 70px;
   height: 70px;
@@ -140,7 +132,6 @@ export default {
   transition: transform 1s cubic-bezier(.2,.8,.2,1);
 }
 
-/* faces */
 .face {
   position: absolute;
   width: 48px;
@@ -157,7 +148,6 @@ export default {
   font-size: 16px;
 }
 
-/* kolor i pozycjonowanie ścianek */
 .f1 { background:#1976d2; transform: rotateY(0deg) translateZ(24px); }   /* 1 front */
 .f2 { background:#43a047; transform: rotateY(90deg) translateZ(24px); }  /* 2 right */
 .f3 { background:#e53935; transform: rotateY(180deg) translateZ(24px); } /* 3 back */
@@ -172,7 +162,6 @@ export default {
   text-shadow: 0 1px 0 rgba(0,0,0,0.12);
 }
 
-/* efekt potrząsania podczas roll */
 .cube-stage.rolling .cube {
   transition: transform 1s cubic-bezier(.2,.8,.2,1);
   animation: wobble 1s ease;
@@ -187,7 +176,6 @@ export default {
   100% { transform: rotateX(0deg) rotateY(0deg) translateZ(0); }
 }
 
-/* wynik tekstowy */
 .result {
   margin: 0;
   font-size: 14px;

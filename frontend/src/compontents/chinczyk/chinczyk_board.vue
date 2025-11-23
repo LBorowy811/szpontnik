@@ -21,7 +21,6 @@ export default {
     const size = 11;
     const is = (r, c, arr) => arr.some(p => p.r === r && p.c === c);
 
-    // homes (2x2)
     const homes = {
       red: [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }],
       blue: [{ r: 0, c: 9 }, { r: 0, c: 10 }, { r: 1, c: 9 }, { r: 1, c: 10 }],
@@ -29,7 +28,6 @@ export default {
       green: [{ r: 9, c: 0 }, { r: 9, c: 1 }, { r: 10, c: 0 }, { r: 10, c: 1 }]
     };
 
-    // starting path areas (wypełnione kolorami)
     const startPaths = {
       red: [{ r: 5, c: 1 }, { r: 5, c: 2 }, { r: 5, c: 3 }, { r: 5, c: 4 }],
       blue: [{ r: 1, c: 5 }, { r: 2, c: 5 }, { r: 3, c: 5 }, { r: 4, c: 5 }],
@@ -37,7 +35,6 @@ export default {
       green: [{ r: 5, c: 6 }, { r: 5, c: 7 }, { r: 5, c: 8 }, { r: 5, c: 9 }]
     };
 
-    // starting pawns placed in homes (rogach planszy)
     const startingPawns = {
       red: [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 1, c: 0 }, { r: 1, c: 1 }],
       blue: [{ r: 0, c: 9 }, { r: 0, c: 10 }, { r: 1, c: 9 }, { r: 1, c: 10 }],
@@ -45,7 +42,6 @@ export default {
       green: [{ r: 9, c: 0 }, { r: 9, c: 1 }, { r: 10, c: 0 }, { r: 10, c: 1 }]
     };
 
-    // outer loop path
     const outerPath = [
       { r: 0, c: 4 }, { r: 0, c: 5 }, { r: 0, c: 6 },
       { r: 1, c: 4 }, { r: 2, c: 4 }, { r: 3, c: 4 }, { r: 4, c: 4 }, { r: 4, c: 3 }, { r: 4, c: 2 }, { r: 4, c: 1 },
@@ -59,7 +55,6 @@ export default {
       { r: 6, c: 0 }, { r: 5, c: 0 }, { r: 4, c: 0 },
     ];
 
-    // special colored path positions
     const special = [
       { r: 0, c: 6, color: "blue" },
       { r: 6, c: 10, color: "yellow" },
@@ -67,7 +62,6 @@ export default {
       { r: 4, c: 0, color: "red" }
     ];
 
-    // build cells
     const cells = Array.from({ length: size * size }).map((_, i) => {
       const r = Math.floor(i / size);
       const c = i % size;
@@ -76,7 +70,6 @@ export default {
       let extraClass = "";
       let pawn = null;
 
-      // homes (2x2) - wypełnione kolorami
       if (is(r, c, homes.red)) {
         type = "home home-red";
       } else if (is(r, c, homes.blue)) {
@@ -87,24 +80,20 @@ export default {
         type = "home home-yellow";
       }
 
-      // center cell
       if (r === 5 && c === 5) {
         type = "center";
         pawn = null;
       }
 
-      // main cross (middle row/column)
       if ((r === 5 || c === 5) && !(r === 5 && c === 5)) {
         type = "path";
       }
 
-      // outer loop path
       if (is(r, c, outerPath)) {
         type = "path";
         extraClass = "outer";
       }
 
-      // starting path areas - wypełnione odpowiednimi kolorami
       if (is(r, c, startPaths.red)) {
         type = "path";
         extraClass = "start-red";
@@ -119,14 +108,12 @@ export default {
         extraClass = "start-green";
       }
 
-      // special colored path positions
       const sp = special.find(p => p.r === r && p.c === c);
       if (sp) {
         type = "path";
         extraClass = `special-${sp.color}`;
       }
 
-      // add starting pawns (w homach/rogach)
       if (is(r, c, startingPawns.red)) {
         pawn = "red";
       } else if (is(r, c, startingPawns.blue)) {
@@ -169,7 +156,6 @@ export default {
 
 .cell.empty { background: transparent; }
 
-/* homes - wypełnione rozjaśnionymi kolorami */
 .home {
   width: 44px;
   height: 44px;
@@ -185,7 +171,6 @@ export default {
 .home.home-green { background: #ccffcc; }
 .home.home-yellow { background: #ffffcc; }
 
-/* center */
 .center {
   width: 44px;
   height: 44px;
@@ -201,7 +186,6 @@ export default {
   justify-content: center;
 }
 
-/* path cells - białe kółka z ciemną obwódką */
 .cell.path {
   background: #ffffff;
   border-radius: 50%;
@@ -214,13 +198,11 @@ export default {
   justify-content: center;
 }
 
-/* outer path */
 .cell.path.outer {
   background: #ffffff;
   border-color: #333;
 }
 
-/* starting path areas - wypełnione rozjaśnionymi kolorami (kółka) */
 .cell.path.start-red {
   background: #ffcccc;
   border-color: #333;
@@ -241,13 +223,11 @@ export default {
   border-color: #333;
 }
 
-/* special colored path cells */
 .cell.path.special-blue { background: #1976d2; border-color: #333; }
 .cell.path.special-yellow { background: #fbc02d; border-color: #333; }
 .cell.path.special-green { background: #43a047; border-color: #333; }
 .cell.path.special-red { background: #e53935; border-color: #333; }
 
-/* pawn sizing */
 .cell.path .pawn { width: 28px; height: 28px; }
 .home .pawn { width: 20px; height: 20px; }
 
