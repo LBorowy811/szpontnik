@@ -48,8 +48,6 @@ export default {
       this.text = '';
       this.scrollBottom();
 
-      // TODO: replace with real WebSocket/Socket.IO send
-      // this.$root.$socket.emit('chatMessage', msg);
     },
     scrollBottom() {
       this.$nextTick(() => {
