@@ -6,10 +6,13 @@
         <span>{{ game.name }}</span>
       </div>
     </div>
+    <Chat />
   </div>
 </template>
 
 <script setup>
+import Chat from '../compontents/Chat.vue'
+
 const games = [
   { name: "Szachy", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
   { name: "Warcaby", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
