@@ -1,6 +1,7 @@
 const connectToDatabase = require('../database/database');
+const bcrypt = require('bcrypt');
 
-//rejestracja
+// rejestracja
 exports.register = async (req, res) => {
   const { login, password, username } = req.body;
 
@@ -11,40 +12,70 @@ exports.register = async (req, res) => {
   try {
     const db = await connectToDatabase();
 
-    const existingUser = await db.get('SELECT * FROM users WHERE login = ?', [login]);
-    if (existingUser) {
+    // sprawdzenie, czy użytkownik o podanym loginie już istnieje
+    const existingUserByLogin = await db.get('SELECT * FROM users WHERE login = ?', [login]);
+    if (existingUserByLogin) {
       return res.status(400).json({ message: 'Użytkownik o takim loginie już istnieje.' });
     }
 
+    // sprawdzenie, czy użytkonik o podanej nazwie już istnieje
+    const existingUserByUsername = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+    if (existingUserByUsername) {
+      return res.status(400).json({ message: 'Ta nazwa użytkonika jest już zajęta.' });
+    }
+
+    //hashowanie hasła
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // zapisanie użytkonika w bazie
     await db.run(
       'INSERT INTO users (login, password, username) VALUES (?, ?, ?)',
-      [login, password, username]
+      [login, hashedPassword, username]
     );
-
     res.status(201).json({ message: 'Rejestracja zakończona sukcesem!' });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Błąd serwera.' });
+   if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.message?.includes('UNIQUE constraint')) {
+      
+    // sprawdzenie czego dotyczy błąd
+      if (err.message?.includes('username')) {
+        return res.status(400).json({ message: 'Ta nazwa użytkownika jest już zajęta.' });
+      } 
+      else if (err.message?.includes('login')) {
+        return res.status(400).json({ message: 'Użytkownik o takim loginie już istnieje.' });
+      }
+    }
   }
 };
 
-//logowanie
+// logowanie
 exports.login = async (req, res) => {
   const { login, password } = req.body;
+
+  if (!login || !password) {
+    return res.status(400).json({ message: 'Login i hasło są wymagane.' });
+  }
 
   try {
     const db = await connectToDatabase();
 
-    const user = await db.get(
-      'SELECT * FROM users WHERE login = ? AND password = ?',
-      [login, password]
-    );
+    // pobranie użytkownika z bazy
+    const user = await db.get('SELECT * FROM users WHERE login = ?', [login]);
 
+    // sprawdzenie, czy użytkownik istnieje
     if (!user) {
       return res.status(401).json({ message: 'Nieprawidłowy login lub hasło.' });
     }
 
-    res.json({ message: `Witaj, ${user.username}!`, user });
+    // porównanie podanego hasła z zahashowanym hasłem w bazie
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Nieprawidłowy login lub hasło.' });
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ message: `Witaj, ${user.username}!`, user: userWithoutPassword });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Błąd serwera.' });

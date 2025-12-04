@@ -9,8 +9,8 @@
 </template>
 
 <script setup>
-import Sidebar from './compontents/Sidebar.vue';
-import UserMenuTop from './compontents/UserMenuTop.vue';
+import Sidebar from './components/Sidebar.vue';
+import UserMenuTop from './components/UserMenuTop.vue';
 </script>
 
 <style>
