@@ -2,29 +2,35 @@
   <div class="sidebar">
     <div class="menu">
       <div class="menu-item">
-        <img src="../assets/icons/console.png" alt="Casual" class="icon" />
+        <img src="../assets/sidebar/console.png" alt="Casual" class="icon" />
         <span>Casual</span>
       </div>
       <div class="menu-item">
-        <img src="../assets/icons/ranking.png" alt="Rankingowa" class="icon" />
+        <img src="../assets/sidebar/ranking.png" alt="Rankingowa" class="icon" />
         <span>Rankingowa</span>
       </div>
       <div class="menu-item">
-        <img src="../assets/icons/trophy.png" alt="Turnieje" class="icon" />
+        <img src="../assets/sidebar/trophy.png" alt="Turnieje" class="icon" />
         <span>Turnieje</span>
       </div>
     </div>
-
     <div class="bottom">
-      <div class="menu-item">
-        <img src="../assets/icons/setting.png" alt="Ustawienia" class="icon" />
-        <span>Ustawienia</span>
+      <div class="menu-item" @click="goToSettings">
+        <img src="../assets/sidebar/setting.png" alt="Profil" class="icon" />
+        <span>Profil</span>
       </div>
     </div>
   </div>
 </template>
 
-<script>
+<script setup>
+import { useRouter } from 'vue-router'
+const router = useRouter()
+
+// przejście do ustawień
+const goToSettings = () => {
+  router.push('/settings')
+}
 </script>
 
 <style scoped>

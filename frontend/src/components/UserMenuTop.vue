@@ -2,7 +2,7 @@
   <div class="usermenutop">
     <div class="nav">
       <div class="left" @click="goToHome">
-        <img src="../assets/icons/makajler32x32.png" alt="Logo" class="logo" />
+        <img src="../assets/usermenutop/makajler32x32.png" alt="Logo" class="logo" />
         <span>Szpontnik</span>
       </div>
       <div class="middle">

@@ -11,21 +11,21 @@
 
 <script setup>
 const games = [
-  { name: "Szachy", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Warcaby", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Chińczyk", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Domino", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Gomoku", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Kalambury", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Kości", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Literaki", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Kulki", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Mahjong", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Monopol", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Piłka", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Reversi", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Tryktrak", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
-  { name: "Makao", img: new URL('../assets/gry/placeholder.png', import.meta.url).href },
+  { name: "Szachy", img: new URL('../assets/home/szachy.png', import.meta.url).href },
+  { name: "Warcaby", img: new URL('../assets/home/warcaby.png', import.meta.url).href },
+  { name: "Chińczyk", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Domino", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Gomoku", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Kalambury", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Kości", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Literaki", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Kulki", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Mahjong", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Monopol", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Piłka", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Reversi", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Tryktrak", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Makao", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
 ];
 </script>
 

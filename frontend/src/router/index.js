@@ -2,6 +2,20 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
+import Settings from '../views/Settings.vue'
+
+const requireAuth = (to, from, next) => {
+  const userData = localStorage.getItem('user')
+
+  // przekierowanie użytkownika do logowania, jeśli nie jest zalogowany
+  if (!userData) {
+    next({
+      path: '/login'
+    })
+  } else {
+    next()
+  }
+}
 
 const routes = [
   {
@@ -18,6 +32,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register,
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings,
+    beforeEnter: requireAuth,
   },
 ]
 
