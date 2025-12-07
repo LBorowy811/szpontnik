@@ -15,22 +15,86 @@
       </div>
     </div>
     <div class="bottom">
+      <div v-if="isLoggedIn" class="menu-item chat-menu-item" @click="toggleChat">
+        <span class="chat-icon">💬</span>
+        <span>Czat</span>
+        <span v-if="unreadCount > 0" class="unread-badge-sidebar">{{ unreadCount }}</span>
+      </div>
       <div class="menu-item" @click="goToSettings">
         <img src="../assets/sidebar/setting.png" alt="Profil" class="icon" />
         <span>Profil</span>
       </div>
     </div>
   </div>
+  <Chat :isOpen="isChatOpen" @close="closeChat" @newMessage="handleNewMessage" @chatOpened="handleChatOpened" />
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import Chat from './Chat.vue'
+
 const router = useRouter()
+
+// stan czatu
+const isLoggedIn = ref(false)
+const isChatOpen = ref(false)
+const unreadCount = ref(0)
+
+const checkLoginStatus = () => {
+  try {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      isLoggedIn.value = true
+    } else {
+      isLoggedIn.value = false
+      isChatOpen.value = false
+      unreadCount.value = 0
+    }
+  } catch (error) {
+    console.error('Błąd podczas sprawdzania stanu zalogowania:', error)
+    isLoggedIn.value = false
+  }
+}
+
+// obsługa czatu
+const toggleChat = () => {
+  if (!isLoggedIn.value) {
+    router.push('/login')
+    return
+  }
+  isChatOpen.value = !isChatOpen.value
+  if (isChatOpen.value) {
+    unreadCount.value = 0
+  }
+}
+
+const closeChat = () => {
+  isChatOpen.value = false
+}
+
+const handleNewMessage = () => {
+  if (!isChatOpen.value) {
+    unreadCount.value++
+  }
+}
+
+const handleChatOpened = () => {
+  unreadCount.value = 0
+}
 
 // przejście do ustawień
 const goToSettings = () => {
   router.push('/settings')
 }
+
+// custom event wywoływany po zalogowaniu
+window.addEventListener('userLogin', checkLoginStatus)
+window.addEventListener('storage', checkLoginStatus)
+
+onMounted(() => {
+  checkLoginStatus()
+})
 </script>
 
 <style scoped>
@@ -91,5 +155,34 @@ const goToSettings = () => {
 
 .menu-item:hover .icon {
   filter: invert(62%) sepia(41%) saturate(749%) hue-rotate(96deg) brightness(92%) contrast(89%);
+}
+
+.chat-menu-item {
+  position: relative;
+}
+
+.chat-icon {
+  font-size: 1.5rem;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unread-badge-sidebar {
+  background-color: red;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
 }
 </style>
