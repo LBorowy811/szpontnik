@@ -3,6 +3,7 @@ import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Settings from '../views/Settings.vue'
+import gamesRoutes from '@/games/games-router.js'
 
 const requireAuth = (to, from, next) => {
   const userData = localStorage.getItem('user')
@@ -39,6 +40,9 @@ const routes = [
     component: Settings,
     beforeEnter: requireAuth,
   },
+
+  // trasy do gier z osobnego routera
+  ...gamesRoutes,
 ]
 
 const router = createRouter({
@@ -47,4 +51,3 @@ const router = createRouter({
 })
 
 export default router
-

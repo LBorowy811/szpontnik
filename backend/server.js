@@ -15,26 +15,29 @@ const io = new Server(server, {
 
 const PORT = 3000;
 
-//import routingu
+// import routingu
 const authRoutes = require('./routes/authRoutes');
+const checkersRoutes = require('./routes/checkersRoutes');
 
-//middleware
+// middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-//routing
+// routing
 app.use('/api/auth', authRoutes);
+app.use('/api/checkers', checkersRoutes);
 
-//prosty testowy endpoint
+// prosty testowy endpoint
 app.get('/', (req, res) => {
   res.send('Serwer Express działa 🎉');
 });
 
-//obsluga polaczen socket.io
+// obsługa połączeń socket.io
 io.on('connection', (socket) => {
   console.log('Użytkownik połączył się:', socket.id);
 
-  io.emit('online-count', io.engine.clientsCount); //pokazywanie liczby uzytkownikow online
+  // pokazywanie liczby użytkowników online
+  io.emit('online-count', io.engine.clientsCount);
 
   socket.on('chat-message', (data) => {
     const message = {
@@ -47,18 +50,18 @@ io.on('connection', (socket) => {
         minute: '2-digit' 
       })
     };
-    // wyslanie wiadomosci do wszystkich lacznie z tym ktory wyslal
+    // wysłanie wiadomości do wszystkich łącznie z tym, który wysłał
     io.emit('chat-message', message);
   });
   
-  //obluga rozlaczenia
+  // obsługa rozłączenia
   socket.on('disconnect', () => {
     console.log(`Użytkownik ${socket.id} opuścił czat`);
     io.emit('online-count', io.engine.clientsCount);
   });
 });
 
-//start serwera
+// start serwera
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Serwer działa na http://localhost:${PORT}`);
   console.log(`Serwer dostępny w sieci lokalnej na porcie ${PORT}`);
