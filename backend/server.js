@@ -7,6 +7,7 @@ const PORT = 3000;
 
 //import routingu
 const authRoutes = require('./routes/authRoutes');
+const checkersRoutes = require("./routes/checkersRoutes");
 
 //middleware
 app.use(cors());
@@ -14,7 +15,7 @@ app.use(bodyParser.json());
 
 //routing
 app.use('/api/auth', authRoutes);
-
+app.use('/api/checkers', checkersRoutes);
 
 //prosty testowy endpoint
 app.get('/', (req, res) => {

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
+import gamesRoutes from '@/games/games-router.js'
 
 const routes = [
   {
@@ -19,6 +20,8 @@ const routes = [
     name: 'Register',
     component: Register,
   },
+
+  ...gamesRoutes,
 ]
 
 const router = createRouter({
