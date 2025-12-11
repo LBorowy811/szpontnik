@@ -92,7 +92,7 @@ const handleLogin = async () => {
     
     // timeout przed przekierowaniem (do wyświetlenia komunikatu)
     setTimeout(() => {
-      router.push('/')
+      window.location.href = '/'
     }, 1000)
   } catch (error) {
     errorMessage.value = error.message || 'Wystąpił błąd podczas logowania.'

@@ -18,6 +18,7 @@
 </template>
 
 <script setup>
+import { authAPI } from '../services/api.js'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -49,11 +50,20 @@ const checkLoginStatus = () => {
 }
 
 // wylogowanie
-const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    // wywołanie endpointu wylogowania
+    await authAPI.logout()
+  } catch (error) {
+    console.error('Błąd podczas wylogowywania:', error)
+  }
+
+  // usunięcie danych użytkownika z localStorage
   localStorage.removeItem('user')
   user.value = null
   isLoggedIn.value = false
   router.push('/')
+  window.location.reload()
 }
 
 // przejście do strony logowania

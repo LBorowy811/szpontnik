@@ -8,6 +8,7 @@ const socket = io(SERVER_URL, {
   reconnectionDelay: 1000,
   reconnectionAttempts: 5,
   path: '/socket.io', // Ścieżka dla Socket.IO
+  withCredentials: true
 })
 
 // Event listeners dla połączenia
@@ -23,5 +24,4 @@ socket.on('connect_error', (error) => {
   console.error('Błąd połączenia Socket.IO:', error)
 })
 
-export default socket
-
+export default socket;

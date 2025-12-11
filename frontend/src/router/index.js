@@ -1,21 +1,32 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import api from '../services/api.js'
 import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Settings from '../views/Settings.vue'
 
-const requireAuth = (to, from, next) => {
-  const userData = localStorage.getItem('user')
-
-  // przekierowanie użytkownika do logowania, jeśli nie jest zalogowany
-  if (!userData) {
-    next({
-      path: '/login'
-    })
-  } else {
-    next()
+// weryfikacja tokenu przez endpoint /auth/verify (prawidłowość tokenu i jego aktualność)
+const requireAuth = async (to, from, next) => {
+  try {
+    const response = await api.get('/auth/verify');
+    if (response.data.valid) {
+      // prawidlowy token, aktualizacja localStorage i kontynuacja nawigacji
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      next();
+    } else {
+      // nieprawidlowy token, usun localStorage i przekieruj do logowania
+      localStorage.removeItem('user');
+      next('/login');
+    }
+  } catch (error) {
+    // błąd weryfikacji (401/403) - token wygasl lub jest nieprawidlowy
+    // interceptor axios w api.js zajmuje sie usuwaniem localStorage i przekierowaniem
+    // ale jeszcze jeden raz na pewno nie zaszkodzi
+    console.error('Błąd podczas weryfikacji tokenu:', error);
+    localStorage.removeItem('user');
+    next('/login');
   }
-}
+}; 
 
 const routes = [
   {
@@ -46,5 +57,4 @@ const router = createRouter({
   routes,
 })
 
-export default router
-
+export default router;

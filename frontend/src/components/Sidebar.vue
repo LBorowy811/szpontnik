@@ -15,8 +15,8 @@
       </div>
     </div>
     <div class="bottom">
-      <div v-if="isLoggedIn" class="menu-item chat-menu-item" @click="toggleChat">
-        <span class="chat-icon">💬</span>
+      <div v-if="isLoggedIn" class="menu-item" @click="toggleChat">
+        <img src="../assets/sidebar/chat.png" alt="Czat" class="icon">
         <span>Czat</span>
         <span v-if="unreadCount > 0" class="unread-badge-sidebar">{{ unreadCount }}</span>
       </div>
@@ -26,7 +26,7 @@
       </div>
     </div>
   </div>
-  <Chat :isOpen="isChatOpen" @close="closeChat" @newMessage="handleNewMessage" @chatOpened="handleChatOpened" />
+  <Chat v-if="isLoggedIn" :isOpen="isChatOpen" @close="closeChat" @newMessage="handleNewMessage" @chatOpened="handleChatOpened" />
 </template>
 
 <script setup>
@@ -128,6 +128,7 @@ onMounted(() => {
 .bottom {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 
 .menu-item {
@@ -140,6 +141,7 @@ onMounted(() => {
   transition: border-color 0.3s ease, color 0.3s ease;
   font-size: 1.2rem;
   color: var(--font-color);
+  position: relative;
 }
 
 .menu-item:hover {
@@ -155,18 +157,6 @@ onMounted(() => {
 
 .menu-item:hover .icon {
   filter: invert(62%) sepia(41%) saturate(749%) hue-rotate(96deg) brightness(92%) contrast(89%);
-}
-
-.chat-menu-item {
-  position: relative;
-}
-
-.chat-icon {
-  font-size: 1.5rem;
-  width: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .unread-badge-sidebar {
