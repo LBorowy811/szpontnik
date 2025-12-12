@@ -4,8 +4,8 @@ Aby poprawnie uruchomić projekt, wykonaj poniższe kroki konfiguracyjne.
 
 -------------------------------------------------------
 1. Utworzenie pliku `.env`
-   lub (skorzystaj z obecnego rozwiązania tymczasowego -> x.)
-x. Zmień nazwę obecnie istniejącego pliku "konfiguracja_pliku_env.txt" na samo ".env" (bez zmian w pliku), przejdź do kroku nr 3.
+   lub (skorzystaj z obecnego rozwiązania tymczasowego -> 2.)
+(2). Zmień nazwę obecnie istniejącego pliku "konfiguracja_pliku_env.txt" na samo ".env" (bez zmian w pliku), przejdź do kroku nr 3.
 -------------------------------------------------------
 
 W katalgu "backend" utwórz plik:
@@ -26,10 +26,10 @@ Aby wygenerować unikalny klucz, użyj Node.js:
 
 1. Otwórz terminal.
 2. Uruchom Node:
-   node
+   ```node```
 3. Wpisz komendę:
-   require('crypto').randomBytes(64).toString('hex')
-4. Skopiuj wygenerowany klucz i wklej go do pliku `.env` w miejsce 'TWÓJ_WYGENEROWANY_KLUCZ'.
+   ```require('crypto').randomBytes(64).toString('hex')```
+4. Skopiuj wygenerowany klucz i wklej go do pliku `.env` w miejsce ```'TWÓJ_WYGENEROWANY_KLUCZ'```.
 
 -------------------------------------------------------
 3. Instalacja zależności
@@ -38,17 +38,20 @@ Aby wygenerować unikalny klucz, użyj Node.js:
 1. Otwórz terminal.
 2. Przejdź do katalogu backend.
 3. Uruchom polecenie: 
+   ```
    npm install; npm start
+   ```
 4. Otwórz nowe okno terminalu.
 5. Przejdź do katalogu frontend.
 6. Uruchom polecenie:
+   ```
    npm install; npm run dev
-
+   ```
 -------------------------------------------------------
 4. Uruchomienie aplikacji
 -------------------------------------------------------
 
-W terminalu, w którym został uruchomiony frontend, wciśnij lewym przyciskiem myszy trzymając lewy control - adres Network/Localhost
+W terminalu, w którym został uruchomiony frontend, wciśnij lewym przyciskiem myszy trzymając lewy control - adres ``` Network / Localhost ```
 
 -------------------------------------------------------
 Dodatkowe informacje
