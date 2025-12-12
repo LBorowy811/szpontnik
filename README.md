@@ -4,8 +4,8 @@ Aby poprawnie uruchomić projekt, wykonaj poniższe kroki konfiguracyjne.
 
 -------------------------------------------------------
 1. Utworzenie pliku `.env`
-   lub (skorzystaj z obecnego rozwiązania tymczasowego)
-2. Zmień nazwę obecnie istniejącego pliku "konfiguracja_pliku_env.txt" na samo ".env" (bez zmian w pliku), przejdź do kroku nr 3.
+   lub (skorzystaj z obecnego rozwiązania tymczasowego -> x.)
+x. Zmień nazwę obecnie istniejącego pliku "konfiguracja_pliku_env.txt" na samo ".env" (bez zmian w pliku), przejdź do kroku nr 3.
 -------------------------------------------------------
 
 W katalgu "backend" utwórz plik:
