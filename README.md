@@ -14,8 +14,8 @@ W katalgu "backend" utwórz plik:
 
 i umieść w nim poniższe zmienne środowiskowe:
 
-ACCESS_TOKEN_SECRET='TWÓJ_WYGENEROWANY_KLUCZ'
-NODE_ENV=development
+#ACCESS_TOKEN_SECRET='TWÓJ_WYGENEROWANY_KLUCZ'
+#NODE_ENV=development
 
 -------------------------------------------------------
 2. Generowanie ACCESS_TOKEN_SECRET
