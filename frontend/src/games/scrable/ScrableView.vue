@@ -1,4 +1,3 @@
-<!-- src/games/scrable/ScrableView.vue -->
 <template>
   <GameLayout
     :score="score"

@@ -40,8 +40,12 @@ const routes = [
     component: Settings,
     beforeEnter: requireAuth,
   },
+  {
+    path: "/games/:gameKey/rooms",
+    name: "GameRooms",
+    component: () => import("@/games/rooms/GameRoomsView.vue"),
+  },
 
-  // trasy do gier z osobnego routera
   ...gamesRoutes,
 ]
 

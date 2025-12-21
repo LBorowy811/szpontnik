@@ -4,7 +4,6 @@
       <slot name="board" />
     </div>
 
-    <!--miejsce na chat zamiast tego diva side-panel/lub w nim-->
     <div id="side-panel">
       <slot name="side"></slot>
     </div>
@@ -15,8 +14,9 @@
       <div id="Player1" class="player-slot">
         <div class="slot-photo"></div>
         <div class="slot-meta">
-          <div class="slot-name">wolne miejsve</div>
-          <button class="slot-join" type="button" @click="onJoin('left')">
+          <div class="slot-name">{{ leftLabel }}</div>
+
+          <button v-if="!hasLeft" class="slot-join" type="button" @click="onJoin('left')">
             Dolacz
           </button>
         </div>
@@ -29,8 +29,9 @@
       <div id="Player2" class="player-slot">
         <div class="slot-photo"></div>
         <div class="slot-meta">
-          <div class="slot-name">wolne miejsve</div>
-          <button class="slot-join" type="button" @click="onJoin('right')">
+          <div class="slot-name">{{ rightLabel }}</div>
+
+          <button v-if="!hasRight" class="slot-join" type="button" @click="onJoin('right')">
             Dolacz
           </button>
         </div>
@@ -76,7 +77,7 @@
 
             <template v-else>
               <tr v-for="(m, i) in moves" :key="m.id ?? i">
-                <td>{{ m.id ?? (moves.length+ i + 1) }}</td>
+                <td>{{ m.id ?? (moves.length + i + 1) }}</td>
                 <td>{{ formatPlayer(m) }}</td>
                 <td>{{ formatCoords(m.from) }}</td>
                 <td>{{ formatCoords(m.to) }}</td>
@@ -84,7 +85,6 @@
                 <td>{{ formatTime(m.time) }}</td>
               </tr>
             </template>
-
           </tbody>
         </table>
       </div>
@@ -93,58 +93,75 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed } from "vue";
 
 const props = defineProps({
   score: { type: Object, required: true },
   moves: { type: Array, required: true },
   gameId: { type: [String, Number], required: false },
-})
+  players: { type: Object, default: () => ({ left: null, right: null }) },
+});
 
-const emit = defineEmits(['join'])
+const emit = defineEmits(["join"]);
 
 function onJoin(side) {
-  emit('join', { side, gameId: props.gameId || null })
+  emit("join", { side, gameId: props.gameId || null });
 }
 
-const isScrable = computed(() => {
-  const id = (props.gameId ?? '').toString().toLowerCase()
-  return id.includes('scrable') || id.includes('literaki')
-})
+function normalizePlayer(p) {
+  if (!p) return { exists: false, label: "wolne miejsce" };
 
+  if (typeof p === "string") {
+    const label = p.trim();
+    return { exists: true, label: label || "wolne miejsce" };
+  }
+
+  const label = (p.username || p.name || "").toString().trim();
+  return { exists: true, label: label || "wolne miejsce" };
+}
+
+const leftNorm = computed(() => normalizePlayer(props.players?.left));
+const rightNorm = computed(() => normalizePlayer(props.players?.right));
+
+const hasLeft = computed(() => leftNorm.value.exists);
+const hasRight = computed(() => rightNorm.value.exists);
+
+const leftLabel = computed(() => leftNorm.value.label);
+const rightLabel = computed(() => rightNorm.value.label);
+
+const isScrable = computed(() => {
+  const id = (props.gameId ?? "").toString().toLowerCase();
+  return id.includes("scrable") || id.includes("literaki");
+});
 
 function formatCoords(pos) {
-  if (!pos) return ''
-  return `${pos.x},${pos.y}`
+  if (!pos) return "";
+  return `${pos.x},${pos.y}`;
 }
 
 function formatPlayer(m) {
-  if (m.player) return m.player
-  if (m.playerName) return m.playerName
-
-  if (m.playerColor === 'white') return 'Białe'
-  if (m.playerColor === 'black') return 'Czarne'
-  return ''
+  if (m.player) return m.player;
+  if (m.playerName) return m.playerName;
+  if (m.playerColor === "white") return "Białe";
+  if (m.playerColor === "black") return "Czarne";
+  return "";
 }
 
 function defaultMoveType(m) {
-  if (m.type) return m.type
-  return m.capturedId ? 'bicie' : 'ruch'
+  if (m.type) return m.type;
+  return m.capturedId ? "bicie" : "ruch";
 }
 
 function formatTime(time) {
-  if (!time) return ''
-  const d = new Date(time)
-  if (Number.isNaN(d.getTime())) {
-    return time
-  }
-  return d.toLocaleTimeString('pl-PL', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+  if (!time) return "";
+  const d = new Date(time);
+  if (Number.isNaN(d.getTime())) return time;
+  return d.toLocaleTimeString("pl-PL", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
-
 </script>
 
 <style scoped>
@@ -260,12 +277,10 @@ function formatTime(time) {
   border: 2px solid #444;
   border-radius: 8px;
   background: #181818;
-  max-height: 220px; 
+  max-height: 220px;
   overflow-y: auto;
   overflow-x: hidden;
 }
-
-
 
 .moves-table {
   border-collapse: collapse;

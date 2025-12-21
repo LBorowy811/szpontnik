@@ -3,202 +3,380 @@
     :score="score"
     :moves="moves"
     :game-id="state.gameId"
+    :players="state.players"
     @join="handleJoin"
   >
     <template #board>
       <BoardCheckers
         :pieces="state.pieces"
-        :selected-piece="state.selectedPiece"
+        :selected-piece="selectedPiece"
         @piece-click="handlePieceClick"
         @square-click="handleSquareClick"
       />
     </template>
   </GameLayout>
+  <div v-if="state.status !== 'ongoing'" class="end-modal-backdrop">
+    <div class="end-modal">
+      <h2 class="end-title">{{ endTitle }}</h2>
+      <p class="end-subtitle" v-if="endMessage">{{ endMessage }}</p>
+
+      <div class="end-actions">
+        <button class="end-btn" type="button" @click="exitToHome">
+          Wyjdź
+        </button>
+
+        <div class="rematch-box">
+            <button class="end-btn primary" type="button" @click="requestRematch" :disabled="!mySide" style="opacity: 0.95;">
+              Zagraj ponownie
+            </button>
+          <div class="rematch-count">{{ state.rematchCount }}/2</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import axios from "axios";
 import GameLayout from "@/games/GameLayout.vue";
 import BoardCheckers from "@/components/checkers/BoardCheckers.vue";
-
-const API_URL = "http://localhost:3000/api/checkers";
-const POLL_INTERVAL_MS = 1000;
-const INITIAL_PIECES_PER_COLOR = 12;
+import socket from "@/services/socket";
+import { makeCheckersStartPieces } from "@/components/checkers/checkersStartPieces.js";
 
 const route = useRoute();
 const router = useRouter();
 
-let pollTimer = null;
-
-const score = reactive({ left: 0, right: 0 }); //lewy bialy prawy czarny
+const score = reactive({ left: 0, right: 0 });
 const moves = ref([]);
+const selectedPiece = ref(null);
 
 const state = reactive({
   gameId: null,
-  pieces: [],
+  players: { left: null, right: null },
+  pieces: makeCheckersStartPieces(),
   currentTurn: "white",
-  selectedPiece: null,
-  validMoves: [],
-  isChainCapture: false,
-  chainPieceId: null,
+  validMoves: [], // [{x,y}]
+  forcedPieceId: null,
 
-// stan gry
   status: "ongoing",
-  drawReason: null,
-  noProgressCount: 0
+  winner: null,
+  finishReason: null,
+  rematchCount: 0,
 });
 
-function updateScoreFromPieces(pieces) {
-  const whiteLeft = pieces.filter(p => p.color === "white").length;
-  const blackLeft = pieces.filter(p => p.color === "black").length;
-
-  const capturedByWhite = INITIAL_PIECES_PER_COLOR - blackLeft;
-  const capturedByBlack = INITIAL_PIECES_PER_COLOR - whiteLeft;
-
-  score.left = capturedByWhite;
-  score.right = capturedByBlack;
+function normalizePlayer(p) {
+  if (!p) return null;
+  return {
+    username: p.username,
+    userId: p.userId,
+    socketId: p.socketId,
+    color: p.color,
+  };
 }
+
 
 function applyGame(game) {
-  state.gameId = game.id;
-  state.pieces = game.pieces;
-  state.currentTurn = game.currentTurn || "white";
-  moves.value = game.moves ?? [];
+  state.gameId = game?.id ?? null;
 
-  state.status = game.status || "ongoing";
-  state.drawReason = game.drawReason || null;
-  state.noProgressCount = game.noProgressCount ?? 0;
+  state.players = {
+    left: normalizePlayer(game?.players?.left),
+    right: normalizePlayer(game?.players?.right),
+  };
 
-  updateScoreFromPieces(game.pieces);
+  state.pieces = game?.pieces || makeCheckersStartPieces();
+  state.currentTurn = game?.currentTurn || "white";
+  moves.value = game?.moves ?? [];
+  score.left = game?.score?.left ?? 0;
+  score.right = game?.score?.right ?? 0;
+  state.forcedPieceId = game?.mustContinueCapture?.pieceId ?? null;
+  state.status = game?.status || "ongoing";
+  state.winner = game?.winner ?? null;
+  state.finishReason = game?.finishReason ?? null;
 
-  console.log("STATUS GRY:", state.status,"powód:", state.drawReason,"noProgressCount:",state.noProgressCount, "tura:", state.currentTurn);
-}
+  const ready = game?.rematchReady;
+  state.rematchCount = ready ? (ready.left ? 1 : 0) + (ready.right ? 1 : 0) : 0;
 
-async function loadGameById(id) {
-  try {
-    const res = await axios.get(`${API_URL}/${id}`);
-    applyGame(res.data);
-  } catch (e) {
-    console.error("Błąd wczytywania gry", e);
+  console.log("[CHECKERS] applyGame -> players:", state.players, "turn:", state.currentTurn);
+
+  const me = getLoggedUserOrNull();
+  const forced = state.forcedPieceId
+    ? (state.pieces.find(p => p.id === state.forcedPieceId) || null)
+    : null;
+
+  const forcedForMe =
+    !!forced &&
+    !!game?.mustContinueCapture?.userId &&
+    !!me?.id &&
+    String(game.mustContinueCapture.userId) === String(me.id);
+
+  if (forcedForMe) {
+    selectedPiece.value = forced;
+
+    //kontynuowanie ruchu tylko przy biciu
+    const caps = getCaptureMovesLocal(forced);
+    state.validMoves = caps;
+  } else {
+    selectedPiece.value = null;
+    state.validMoves = [];
   }
+
+
 }
 
-async function createGame() {
-  try {
-    const res = await axios.post(`${API_URL}/new`, {
-      player1: "Damian",
-      player2: "Przeciwnik",
-    });
-    applyGame(res.data);
+function setupSocketListeners() {
+  socket.off("checkers:state");
+  socket.on("checkers:state", (game) => {
+    console.log("[CHECKERS] checkers:state received", game);
+    applyGame(game);
+  });
+  socket.off("checkers:rematchStatus");
+  socket.on("checkers:rematchStatus", (payload) => {
+    if (String(payload?.gameId) !== String(state.gameId)) return;
+    state.rematchCount = payload?.count ?? state.rematchCount;
+  });
 
-    state.isChainCapture = false;
-    state.chainPieceId = null;
+  socket.off("checkers:rematchStarted");
+  socket.on("checkers:rematchStarted", async ({ newGameId }) => {
+    if (!newGameId) return;
 
-    console.log("Nowa gra:", res.data.id);
-  } catch (e) {
-    console.error("Błąd tworzenia gry", e);
-  }
-}
+    console.log("[REMATCH] started -> newGameId:", newGameId);
 
-function startPolling() {
-  if (pollTimer) return;
+    router.replace({ query: { ...route.query, gameId: newGameId } });
 
-  pollTimer = setInterval(async () => {
-    if (!state.gameId) return;
     try {
-      const res = await axios.get(`${API_URL}/${state.gameId}`);
-      applyGame(res.data);
+      const game = await socketWatchGame(newGameId);
+      applyGame(game);
     } catch (e) {
-      console.error("Błąd pollingu gry", e);
+      console.error("[REMATCH] watch new game failed", e);
     }
-  }, POLL_INTERVAL_MS);
+  });
 }
 
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
+function socketCreateGame() {
+  return new Promise((resolve, reject) => {
+    socket.emit("checkers:createGame", {}, (resp) => {
+      if (!resp?.ok) return reject(new Error(resp?.error || "createGame failed"));
+      resolve(resp.game);
+    });
+  });
+}
+
+function socketWatchGame(gameId) {
+  return new Promise((resolve, reject) => {
+    socket.emit("checkers:watchGame", { gameId }, (resp) => {
+      if (!resp?.ok) return reject(new Error(resp?.error || "watchGame failed"));
+      resolve(resp.game);
+    });
+  });
+}
+
+function socketJoinGame({ gameId, side, username, userId }) {
+  return new Promise((resolve, reject) => {
+    socket.emit("checkers:joinGame", { gameId, side, username, userId }, (resp) => {
+      if (!resp?.ok) return reject(new Error(resp?.error || "joinGame failed"));
+      resolve(resp.game);
+    });
+  });
+}
+
+
+function socketMove(payload) {
+  return new Promise((resolve, reject) => {
+    console.log("[FRONT MOVE] socket.connected =", socket.connected, "socket.id =", socket.id, "payload =", payload);
+
+    socket.emit("checkers:move", payload, (resp) => {
+      console.log("[FRONT MOVE ACK]", resp);
+      if (!resp?.ok) return reject(new Error(resp?.error || "move failed"));
+      resolve(resp.data);
+    });
+  });
+}
+
+
+function getLoggedUserOrNull() {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
   }
 }
 
-function handleJoin() {
-}
 
-function getMovesForPiece(piece) {
-  const boardMap = new Map();
-  for (const p of state.pieces) {
-    boardMap.set(`${p.x},${p.y}`, p);
+const myUser = computed(() => getLoggedUserOrNull());
+
+
+const mySide = computed(() => {
+  const me = myUser.value;
+  if (!me?.id) return null;
+  if (state.players?.left?.userId === me.id) return "left";
+  if (state.players?.right?.userId === me.id) return "right";
+  return null;
+});
+
+
+const myColor = computed(() => {
+  if (mySide.value === "left") return state.players?.left?.color || null;
+  if (mySide.value === "right") return state.players?.right?.color || null;
+  return null;
+});
+
+
+const isMyTurn = computed(() => {
+  if (!myColor.value) return false;
+  return state.currentTurn === myColor.value;
+});
+
+const endTitle = computed(() => {
+  if (state.status === "draw") return "Remis";
+  if (state.status === "finished") return "Koniec gry";
+  return "";
+});
+
+const endMessage = computed(() => {
+  if (state.status === "draw") {
+    return "Gra zakończyła się remisem.";
   }
 
-  const simpleMoves = [];
-  const captureMoves = [];
+  if (state.status === "finished") {
+    if (state.winnerSide === "left") {
+      return `Wygrał ${state.players?.left?.username || "gracz"}`;
+    }
+    if (state.winnerSide === "right") {
+      return `Wygrał ${state.players?.right?.username || "gracz"}`;
+    }
+    return "Gra zakończona.";
+  }
 
-  const inBoard = (x, y) => x >= 0 && x < 8 && y >= 0 && y < 8;
+  return "";
+});
+
+
+async function handleJoin({ side, gameId }) {
+  const user = getLoggedUserOrNull();
+if (!user?.id || !user?.username) {
+  alert("Musisz być zalogowany, żeby dołączyć do gry.");
+  return;
+}
+const username = user.username;
+const userId = user.id;
+
+
+  const realGameId = gameId || route.query.gameId || state.gameId;
+  if (!realGameId) {
+    alert("Brak ID gry (odśwież stronę).");
+    return;
+  }
+
+  try {
+    const updatedGame = await socketJoinGame({
+      gameId: realGameId,
+      side,
+      username,
+      userId,
+    });
+    applyGame(updatedGame);
+  } catch (e) {
+    alert(e.message || "Nie udało się dołączyć");
+  }
+}
+
+function inBoard(x, y) {
+  return x >= 0 && x < 8 && y >= 0 && y < 8;
+}
+
+function pieceAt(x, y) {
+  return state.pieces.find(p => p.x === x && p.y === y) || null;
+}
+
+function getKingSlideMoves(piece) {
+  const moves = [];
+  const dirs = [
+    { dx: 1, dy: 1 },
+    { dx: 1, dy: -1 },
+    { dx: -1, dy: 1 },
+    { dx: -1, dy: -1 },
+  ];
+
+  for (const { dx, dy } of dirs) {
+    let x = piece.x + dx;
+    let y = piece.y + dy;
+
+    while (inBoard(x, y) && !pieceAt(x, y)) {
+      moves.push({ x, y, capturedId: null });
+      x += dx;
+      y += dy;
+    }
+  }
+
+  return moves;
+}
+
+function getSimpleMoves(piece) {
+  const moves = [];
+
+  const dirs = [];
+  if (piece.king) {
+    dirs.push({ dx: -1, dy: -1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: 1, dy: 1 });
+  } else {
+    if (piece.color === "white") dirs.push({ dx: -1, dy: -1 }, { dx: 1, dy: -1 });
+    if (piece.color === "black") dirs.push({ dx: -1, dy: 1 }, { dx: 1, dy: 1 });
+  }
+
+  for (const { dx, dy } of dirs) {
+    const nx = piece.x + dx;
+    const ny = piece.y + dy;
+    if (!inBoard(nx, ny)) continue;
+    if (pieceAt(nx, ny)) continue;
+    moves.push({ x: nx, y: ny });
+  }
+
+  return moves;
+}
+
+function getCaptureMovesLocal(piece) {
+  const moves = [];
+  const at = (x, y) => state.pieces.find(p => p.x === x && p.y === y) || null;
+
+  const dirs = [
+    { dx: 1, dy: 1 },
+    { dx: 1, dy: -1 },
+    { dx: -1, dy: 1 },
+    { dx: -1, dy: -1 },
+  ];
 
   if (piece.king) {
-    const dirs = [
-      { dx: 1, dy: 1 },
-      { dx: 1, dy: -1 },
-      { dx: -1, dy: 1 },
-      { dx: -1, dy: -1 },
-    ];
-
+    //jesli po drodze krola jest tylko jeden pionek to bicie i pozniej dowolne puste pole w tej samej linii
     for (const { dx, dy } of dirs) {
       let x = piece.x + dx;
       let y = piece.y + dy;
       let enemy = null;
 
       while (inBoard(x, y)) {
-        const key = `${x},${y}`;
-        const occ = boardMap.get(key);
+        const occ = at(x, y);
 
         if (!occ) {
-          if (!enemy) {
-            simpleMoves.push({ x, y, capturedId: null });
-          } else {
-            captureMoves.push({ x, y, capturedId: enemy.id });
+          if (enemy) {
+            moves.push({ x, y, capturedId: enemy.id });
           }
         } else {
-          if (occ.color === piece.color) {
-            break;
-          } else {
-            if (enemy) break;
-            enemy = occ;
-          }
+          if (occ.color === piece.color) break;
+          if (enemy) break;
+          enemy = occ;
         }
 
         x += dx;
         y += dy;
       }
     }
-    return { simpleMoves, captureMoves };
+    return moves;
   }
 
-  const moveDirs = [];
-  if (piece.color === "white") {
-    moveDirs.push({ dx: -1, dy: -1 }, { dx: 1, dy: -1 });
-  } else {
-    moveDirs.push({ dx: -1, dy: 1 }, { dx: 1, dy: 1 });
-  }
-
-  for (const { dx, dy } of moveDirs) {
-    const x = piece.x + dx;
-    const y = piece.y + dy;
-    if (!inBoard(x, y)) continue;
-    if (boardMap.has(`${x},${y}`)) continue;
-    simpleMoves.push({ x, y, capturedId: null });
-  }
-
-  const captureDirs = [
-    { dx: -1, dy: -1 },
-    { dx: 1, dy: -1 },
-    { dx: -1, dy: 1 },
-    { dx: 1, dy: 1 },
-  ];
-
-  for (const { dx, dy } of captureDirs) {
+  for (const { dx, dy } of dirs) {
     const midX = piece.x + dx;
     const midY = piece.y + dy;
     const landX = piece.x + 2 * dx;
@@ -206,155 +384,205 @@ function getMovesForPiece(piece) {
 
     if (!inBoard(midX, midY) || !inBoard(landX, landY)) continue;
 
-    const middle = boardMap.get(`${midX},${midY}`);
-    const landing = boardMap.get(`${landX},${landY}`);
+    const middle = at(midX, midY);
+    const landing = at(landX, landY);
 
-    if (
-      middle &&
-      middle.color !== piece.color &&
-      !landing
-    ) {
-      captureMoves.push({
-        x: landX,
-        y: landY,
-        capturedId: middle.id,
-      });
+    if (middle && middle.color !== piece.color && !landing) {
+      moves.push({ x: landX, y: landY, capturedId: middle.id });
     }
   }
 
-  return { simpleMoves, captureMoves };
+  return moves;
 }
 
-function isValidTarget(x, y) {
-  return state.validMoves.some((m) => m.x === x && m.y === y);
-}
-
-function getMoveForTarget(x, y) {
-  return state.validMoves.find((m) => m.x === x && m.y === y) || null;
-}
-
-function checkFurtherCaptures(pieceId) {
-  const piece = state.pieces.find((p) => p.id === pieceId);
-  if (!piece) return false;
-
-  const { captureMoves } = getMovesForPiece(piece);
-  if (captureMoves.length === 0) return false;
-
-  state.selectedPiece = piece;
-  state.validMoves = captureMoves;
-  state.isChainCapture = true;
-  state.chainPieceId = pieceId;
-
-  console.log("Kontynuacja bicia – możliwe ruchy:", captureMoves);
-  return true;
-}
 
 function handlePieceClick(piece) {
   if (state.status !== "ongoing") return;
-  //kiedy mozliwe jest bicie pionkiem ktory zbilismy nie mozemy ruszyc sie innym pionkiem
-  if (state.isChainCapture) return;
-  //"ruch"/ture przypisuje backend
-  if (piece.color !== state.currentTurn) return;
+  if (!myColor.value) return;
 
-  if (state.selectedPiece && state.selectedPiece.id === piece.id) {
-    state.selectedPiece = null;
+  //tylko swoim kolorem
+  if (piece.color !== myColor.value) return;
+  if (!isMyTurn.value) return;
+  if (state.forcedPieceId && piece.id !== state.forcedPieceId) return;//kontynuacja bicia
+
+  if (selectedPiece.value?.id === piece.id) {
+    // jeśli jest wymuszenie kontynuacji bicia, nie pozwalaj odznaczyć
+    if (state.forcedPieceId && piece.id === state.forcedPieceId) {
+      return;
+    }
+
+    selectedPiece.value = null;
     state.validMoves = [];
     return;
   }
 
-  const { simpleMoves, captureMoves } = getMovesForPiece(piece);
 
-  state.selectedPiece = piece;
-  state.isChainCapture = false;
-  state.chainPieceId = null;
+  selectedPiece.value = piece;
 
-  //przymus bicia
-  state.validMoves =
-    captureMoves.length > 0 ? captureMoves : simpleMoves;
-  console.log("Wybrany pionek:", piece, "ruchy:", state.validMoves);
+  const caps = getCaptureMovesLocal(piece);
+  if (caps.length > 0) {
+    state.validMoves = caps; // bicia
+  } else {
+    if (piece.king) {
+      state.validMoves = getKingSlideMoves(piece);
+    } else {
+      state.validMoves = getSimpleMoves(piece).map(m => ({ ...m, capturedId: null }));
+    }
+  }
+
 }
 
 async function handleSquareClick(pos) {
   if (state.status !== "ongoing") return;
+  if (!selectedPiece.value) return;
+  if (!myColor.value) return;
+  if (!isMyTurn.value) return;
 
-  console.log("Klik na polu:", pos, "selected:", state.selectedPiece);
+  const move = state.validMoves.find(m => m.x === pos.x && m.y === pos.y);
+  if (!move) return;
 
-  if (!state.selectedPiece) {
-    console.log("Brak wybranego pionka -> nic nie robię");
-    return;
-  }
-  if (!isValidTarget(pos.x, pos.y)) {
-    console.log("Kliknięte pole NIE jest dozwolonym ruchem");
-    return;
-  }
-
-  const move = getMoveForTarget(pos.x, pos.y);
-  const capturedId = move?.capturedId ?? null;
-  const movingPieceId = state.selectedPiece.id;
-
-  const from = { x: state.selectedPiece.x, y: state.selectedPiece.y };
+  const from = { x: selectedPiece.value.x, y: selectedPiece.value.y };
   const to = { x: pos.x, y: pos.y };
-
-  console.log("Wysyłam ruch do backendu:", {
-    gameId: state.gameId,
-    pieceId: movingPieceId,
-    from,
-    to,
-    capturedId,
-  });
-
+  const user = getLoggedUserOrNull();
+  
   try {
-    const res = await axios.post(`${API_URL}/${state.gameId}/move`, {
-      pieceId: movingPieceId,
+    await socketMove({
+      gameId: state.gameId,
+      pieceId: selectedPiece.value.id,
       from,
       to,
-      capturedId,
+      capturedId: move.capturedId ?? null,
+      userId: user?.id,
     });
-    console.log("Ruch zapisany (od backendu):", res.data);
 
-    applyGame(res.data.game);
-
-    //zbilem?spr czy wystepuje innne bicie
-    if (capturedId && checkFurtherCaptures(movingPieceId)) {
-      //backend nie zmienia tury bo sa inne bicia
-      return;
-    }
-
-    //vrak dalszych bic
-    state.selectedPiece = null;
-    state.validMoves = [];
-    state.isChainCapture = false;
-    state.chainPieceId = null;
   } catch (e) {
-    console.error("Błąd ruchu", e);
+    alert(e.message || "Nie udało się wykonać ruchu");
   }
 }
 
 onMounted(async () => {
+  setupSocketListeners();
   const gameIdFromUrl = route.query.gameId;
+  const me = getLoggedUserOrNull();
 
-  if (gameIdFromUrl) {
-    //lacznie z istaniejaca gra
-    await loadGameById(gameIdFromUrl);
-  } else {
-    //jesli nie ma takiego id tworzymy gre
-    await createGame();
+  try {
+    if (gameIdFromUrl) {
+      const game = await socketWatchGame(gameIdFromUrl);
+      applyGame(game);
 
-    //id w linku
-    if (state.gameId) {
+      //rejoin
+      if (me?.id) {
+        let side = null;
+
+        if (game?.players?.left?.userId === me.id) side = "left";
+        if (game?.players?.right?.userId === me.id) side = "right";
+
+        if (side) {
+          const updatedGame = await socketJoinGame({
+            gameId: gameIdFromUrl,
+            side,
+            username: me.username,
+            userId: me.id,
+          });
+
+          applyGame(updatedGame);
+        }
+      }
+    } else {
+      const game = await socketCreateGame();
+      applyGame(game);
+
       router.replace({
-        query: {
-          ...route.query,
-          gameId: state.gameId,
-        },
+        query: { ...route.query, gameId: game.id },
       });
     }
+  } catch (e) {
+    console.error("Init socket checkers error:", e);
   }
-
-  startPolling();
 });
 
-onUnmounted(() => {
-  stopPolling();
-});
+function requestRematch() {
+  const me = getLoggedUserOrNull();
+  if (!me?.id) return;
+
+  console.log("[REMATCH] emit checkers:rematchReady", { gameId: state.gameId, userId: me.id });
+
+  socket.emit("checkers:rematchReady", { gameId: state.gameId, userId: me.id }, (resp) => {
+    console.log("[REMATCH] ACK", resp);
+    if (!resp?.ok) alert(resp?.error || "Nie udało się zgłosić rematchu");
+  });
+}
+
+function exitToHome() {
+  router.push("/");
+}
+
 </script>
+
+<style scoped>
+.end-modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+}
+
+.end-modal{
+  width: 420px;
+  background: #1f1f1f;
+  border: 2px solid #444;
+  border-radius: 10px;
+  padding: 18px;
+  color: #f5f5f5;
+}
+
+.end-title{
+  margin: 0 0 14px;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.end-actions{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.end-btn{
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 2px solid #f5f5f5;
+  background: #262626;
+  color: #f5f5f5;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.end-btn.primary{
+  background: #2f2f2f;
+}
+
+.rematch-box{
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.rematch-count{
+  font-size: 12px;
+  opacity: 0.85;
+}
+.end-btn:disabled{
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.end-subtitle{
+  margin: 0 0 14px;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+</style>
