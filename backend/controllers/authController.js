@@ -307,3 +307,168 @@ exports.refresh = async (req, res) => {
     });
   }
 }
+
+// aktualizacja danych konta
+exports.updateAccount = async (req, res) => {
+  console.log(`Aktualizacja konta - żądanie otrzymane dla użytkownika: ${req.user.username} (login: ${req.user.login}, ID: ${req.user.userId})`);
+  const { login, username, password, currentPassword } = req.body;
+  const userId = req.user.userId;
+
+  // sprawdzenie, czy podano hasło do potwierdzenia zmian
+  if (!currentPassword) {
+    return res.status(400).json({ 
+      message: 'Aby zatwierdzić zmiany, musisz podać aktualne hasło.' 
+    });
+  }
+
+  try {
+    const db = await connectToDatabase();
+
+    // pobranie użytkownika z bazy
+    const user = await db.get(
+      'SELECT * FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (!user) {
+      return res.status(404).json({ 
+        message: 'Użytkownik nie został znaleziony.' 
+      });
+    }
+
+    // weryfikacja aktualnego hasła
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        message: 'Nieprawidłowe hasło.' 
+      });
+    }
+
+    // sprawdzenie, czy nowy login nie jest zajęty (jeśli został podany i różni się od obecnego)
+    if (login && login !== user.login) {
+      const existingUserByLogin = await db.get(
+        'SELECT * FROM users WHERE login = ? AND id != ?',
+        [login, userId]
+      );
+
+      if (existingUserByLogin) {
+        return res.status(400).json({ 
+          message: 'Użytkownik o takim loginie już istnieje.' 
+        });
+      }
+    }
+
+    // sprawdzenie, czy nowa nazwa użytkownika nie jest zajęta (jeśli została podana i różni się od obecnej)
+    if (username && username !== user.username) {
+      const existingUserByUsername = await db.get(
+        'SELECT * FROM users WHERE username = ? AND id != ?',
+        [username, userId]
+      );
+
+      if (existingUserByUsername) {
+        return res.status(400).json({ 
+          message: 'Ta nazwa użytkownika jest już zajęta.' 
+        });
+      }
+    }
+
+    // przygotowanie danych do aktualizacji
+    const updates = [];
+    const values = [];
+
+    if (login && login !== user.login) {
+      updates.push('login = ?');
+      values.push(login);
+    }
+
+    if (username && username !== user.username) {
+      updates.push('username = ?');
+      values.push(username);
+    }
+
+    if (password) {
+      // hashowanie nowego hasła
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.push('password = ?');
+      values.push(hashedPassword);
+    }
+
+    // jeśli nie ma żadnych zmian do wprowadzenia
+    if (updates.length === 0) {
+      return res.status(400).json({ 
+        message: 'Nie wprowadzono żadnych zmian.' 
+      });
+    }
+
+    // aktualizacja danych w bazie
+    values.push(userId);
+    await db.run(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    // pobranie zaktualizowanych danych użytkownika
+    const updatedUser = await db.get(
+      'SELECT id, login, username FROM users WHERE id = ?',
+      [userId]
+    );
+
+    // generowanie nowych tokenów z zaktualizowanymi danymi
+    const newAccessToken = createAccessToken({
+      id: updatedUser.id,
+      username: updatedUser.username,
+      login: updatedUser.login
+    });
+    const newRefreshToken = createRefreshToken(updatedUser.id);
+
+    // aktualizacja refresh tokenu w bazie
+    await db.run(
+      'UPDATE users SET refresh_token = ? WHERE id = ?',
+      [newRefreshToken, userId]
+    );
+
+    // ustawienie nowych tokenów w ciasteczkach
+    res.cookie('accessToken', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+      maxAge: ACCESS_COOKIE_MAX_AGE
+    });
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+      maxAge: REFRESH_COOKIE_MAX_AGE
+    });
+
+    // zwrócenie informacji o zaktualizowanym użytkowniku
+    res.json({ 
+      message: 'Dane konta zostały zaktualizowane pomyślnie.',
+      user: updatedUser
+    });
+
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || 
+        err.message?.includes('UNIQUE constraint')) {
+      if (err.message?.includes('username')) {
+        return res.status(400).json({ 
+          message: 'Ta nazwa użytkownika jest już zajęta.' 
+        });
+      } else if (err.message?.includes('login')) {
+        return res.status(400).json({ 
+          message: 'Użytkownik o takim loginie już istnieje.' 
+        });
+      }
+    }
+
+    console.error('Błąd podczas aktualizacji konta:', err);
+    return res.status(500).json({ 
+      message: 'Błąd serwera podczas aktualizacji konta.' 
+    });
+  }
+}
