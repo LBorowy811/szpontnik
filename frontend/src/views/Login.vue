@@ -118,7 +118,7 @@ const handleLogin = async () => {
 
 .login-form {
   background-color: var(--bg-color);
-  border: 2px solid rgba(255, 255, 255, 0.251);
+  border: 2px solid var(--border-color-dimmed);
   padding: 2rem;
   width: 100%;
   max-width: 400px;
@@ -128,7 +128,7 @@ const handleLogin = async () => {
 }
 
 .login-form:hover {
-  border-color: white;
+  border-color: var(--border-color);
 }
 
 h2 {
@@ -173,8 +173,8 @@ label {
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.251);
+  background-color: var(--form-input-bg-color);
+  border: 2px solid var(--border-color-dimmed);
   color: var(--font-color);
   font-family: "JetBrains Mono";
   font-size: 1rem;
@@ -188,7 +188,7 @@ label {
 }
 
 .form-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--form-input-placeholder);
 }
 
 .submit-button {

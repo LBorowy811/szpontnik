@@ -111,7 +111,7 @@ onMounted(() => {
 }
 
 .usermenutop:hover {
-  border-color: white;
+  border-color: var(--border-color);
 }
 
 .nav {

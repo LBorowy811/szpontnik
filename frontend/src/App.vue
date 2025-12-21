@@ -15,6 +15,7 @@ import UserMenuTop from './components/UserMenuTop.vue';
 
 <style>
 body {
+  background-color: var(--bg-app-color);
   margin: 0;
 }
 
@@ -33,6 +34,6 @@ body {
 }
 
 .main-content:hover {
-  border: 2px solid white;
+  border: 2px solid var(--border-color);
 }
 </style>
