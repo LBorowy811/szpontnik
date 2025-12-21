@@ -9,69 +9,29 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-  // żądania bez origin
+const PORT = 3000;
+
+// import routingu
+const authRoutes = require('./routes/authRoutes');
+
+// funkcja pomocnicza do konfiguracji cors
+const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) {
-      return callback(null, true);
-    }
+    if (!origin) return callback(null, true) // zezwól na połączenie bez origin
+    const allowedLocalhost = ['localhost', '127.0.0.1', 'http://localhost:', 'http://127.0.0.1:'];
+    if (allowedLocalhost.some(host => origin.includes(host))) return callback(null, true);
 
-    // zezwalanie na polaczenia z localhost
-    if (
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1') ||
-      origin.includes('http://localhost:') ||
-      origin.includes('http://127.0.0.1:')
-    ) {
-      return callback(null, true);
-    }
-
-    // zezwalanie na polaczenia z sieci lokalnych (popularne zakresy IP)
     const localNetworkPattern = /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
+    if (localNetworkPattern.test(origin)) return callback(null, true);
 
-    if (localNetworkPattern.test(origin)) {
-      return callback(null, true);
-    }
     callback(new Error('Brak dostępu z tego źródła'));
   },
   credentials: true,
   methods: ['GET', 'POST']
-}});
-
-const PORT = 3000;
-
-//import routingu
-const authRoutes = require('./routes/authRoutes');
+}
 
 //middleware
-app.use(cors({
-  // żądania bez origin
-  origin: (origin, callback) => {
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    // zezwalanie na polaczenia z localhost
-    if (
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1') ||
-      origin.includes('http://localhost:') ||
-      origin.includes('http://127.0.0.1:')
-    ) {
-      return callback(null, true);
-    }
-
-    // zezwalanie na polaczenia z sieci lokalnych (popularne zakresy IP)
-    const localNetworkPattern = /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
-
-    if (localNetworkPattern.test(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Brak dostępu z tego źródła'));
-  },
-  credentials: true
-}));
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
@@ -83,8 +43,12 @@ app.get('/', (req, res) => {
   res.send('Serwer Express działa 🎉');
 });
 
+// socket.io
+const io = new Server(server, { cors: corsOptions });
+
 // weryfikacja tokenu dla polaczen socket.io
-io.use((socket, next) => {
+io.use(async (socket, next) => {
+
   // sprawdzenie ciasteczek w nagłówkach
   const cookies = socket.handshake.headers.cookie;
 
@@ -108,17 +72,22 @@ io.use((socket, next) => {
   // weryfikacja tokenu
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
+      if (err.name === 'TokenExpiredError') {
+        console.log("Socket.IO: Token wygasł - wymaga ponownego połączenia");
+        return next(new Error('Token wygasł'));
+      }
       console.log("Socket.IO: Odrzucono połączenie - nieprawidłowy token");
       return next(new Error('Nieprawidłowy token'));
     }
 
-    // dodanie informacji o użytkowniku do obiektu socket
+    // dodanie danych użytkownika do obiektu socket
     socket.user = {
       userId: decoded.userId,
       username: decoded.username,
       login: decoded.login
     };
 
+    // informacja o połączeniu się użytkownika
     console.log(`Socket.IO: Użytkownik ${socket.user.username} połączony`);
     next();
   });
@@ -130,7 +99,9 @@ io.on('connection', (socket) => {
 
   io.emit('online-count', io.engine.clientsCount); //pokazywanie liczby uzytkownikow online
 
+  // obsluga wiadomosci czatu
   socket.on('chat-message', (data) => {
+    
     // walidacja i sanitizacja wiadomosci
     if (!data.message || typeof data.message !== 'string') {
       socket.emit('error', 'Nieprawidłowa wiadomość');
@@ -150,21 +121,21 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // korzystanie z danych z tokenu
+    // tworzenie obiektu wiadomosci, korzystanie z danych z tokenu
     const message = {
       id: socket.id,
       username: socket.user.username,
       userId: socket.user.userId,
       message: messageText,
-      timestamp: new Date().toLocaleTimeString('pl-PL', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      timestamp: new Date().toLocaleTimeString('pl-PL', {
+        hour: '2-digit',
+        minute: '2-digit'
       })
     };
     // wyslanie wiadomosci do wszystkich lacznie z tym ktory wyslal
     io.emit('chat-message', message);
   });
-  
+
   //obluga rozlaczenia
   socket.on('disconnect', () => {
     console.log('Użytkownik opuścił czat:', socket.user.username, 'ID:', socket.id);

@@ -53,6 +53,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { authAPI } from '../services/api'
+import socket from '../services/socket'
 
 // zmienne do przechowywania danych formularza
 const login = ref('')
@@ -88,6 +89,10 @@ const handleLogin = async () => {
     if (response.data.user) {
       localStorage.setItem('user', JSON.stringify(response.data.user))
       window.dispatchEvent(new Event('userLogin'))
+      
+      if (socket && !socket.connected) {
+        socket.connect()
+      }
     }
     
     // timeout przed przekierowaniem (do wyświetlenia komunikatu)
@@ -231,4 +236,3 @@ label {
   border-color: var(--active-item);
 }
 </style>
-

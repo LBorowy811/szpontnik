@@ -1,6 +1,7 @@
 #generowanie klucza -> terminal -> wpisz: node, a potem -> require('crypto').randomBytes(64).toString('hex')
 #przykladowy klucz
 ACCESS_TOKEN_SECRET=703305ae27c3f81626ac31837a56698ed3bf090f627571913df4ae32059afb6853639d8dbaeaa9e3e160171fa6b18ef893dcfbba25cc37031af3159e69ad6f8b
+REFRESH_TOKEN_SECRET=2f950703f365278641f66d649a09ce92c5bb9a61e026e032ad6c7410918edc42d6411e9b95ad55d3586e79f431ccd0a0b570003df002b9541524a80b897c1935
 NODE_ENV=development
 
 #dodaj ACCESS_TOKEN_SECRET oraz NODE_ENV do pliku .env

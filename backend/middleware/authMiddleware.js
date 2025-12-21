@@ -6,13 +6,17 @@ const authenticateToken = (req, res, next) => {
 
     // brak tokenu
     if (!token) {
-        return res.status(401).json({ message: 'Brak tokenu'});
+        return res.status(401).json({ 
+            message: 'Brak access tokenu'
+        });
     }
 
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
         if (err) {
             // nieprawidłowy token
-            return res.status(403).json({ message: "Nieprawidłowy lub wygasły token"});
+            return res.status(403).json({ 
+                message: "Nieprawidłowy lub wygasły token"
+            });
         }
 
         // dodanie informacji o użytkowniku do obiektu request
