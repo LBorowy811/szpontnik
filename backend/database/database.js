@@ -16,7 +16,8 @@ async function connectToDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       login TEXT UNIQUE,
       password TEXT,
-      username TEXT UNIQUE
+      username TEXT UNIQUE,
+      refresh_token TEXT
     )
   `);
 

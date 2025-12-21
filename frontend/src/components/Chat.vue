@@ -94,6 +94,19 @@ const scrollToBottom = () => {
   })
 }
 
+// wygaszanie tokenów i ponowne łączenie
+const handleSocketTokenExpired = () => {
+  console.log('Token wygasł, ponowne łączenie po odświeżeniu')
+  isConnected.value = false
+}
+
+const handleTokenRefreshed = () => {
+  console.log('Token odświeżony, ponowne łączenie socketa')
+  if (socket && !socket.connected) {
+    socket.connect()
+  }
+}
+
 // Scroll przy otwarciu czatu
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
@@ -129,6 +142,10 @@ onMounted(() => {
   socket.on('online-count', (count) => {
     onlineCount.value = count
   })
+
+  // listener dla tokenów
+  window.addEventListener('socketTokenExpired', handleSocketTokenExpired)
+  window.addEventListener('tokenRefreshed', handleTokenRefreshed)
 })
 
 onUnmounted(() => {
@@ -136,8 +153,8 @@ onUnmounted(() => {
   socket.off('disconnect')
   socket.off('chat-message')
   socket.off('online-count')
-  window.removeEventListener('userLogin', checkLoginStatus)
-  window.removeEventListener('storage', checkLoginStatus)
+  window.removeEventListener('socketTokenExpired', handleSocketTokenExpired)
+  window.removeEventListener('tokenRefreshed', handleTokenRefreshed)
 })
 
 const closeChat = () => emit('close')

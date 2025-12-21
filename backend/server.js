@@ -11,83 +11,39 @@ const checkersController = require('./controllers/checkersController');
 const app = express();
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    // żądania bez origin
-    origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      // localhost
-      if (
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1') ||
-        origin.includes('http://localhost:') ||
-        origin.includes('http://127.0.0.1:')
-      ) {
-        return callback(null, true);
-      }
-
-      // sieci lokalne
-      const localNetworkPattern =
-        /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
-
-      if (localNetworkPattern.test(origin)) {
-        return callback(null, true);
-      }
-
-      callback(new Error('Brak dostępu z tego źródła'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST'],
-  },
-});
-
 const PORT = 3000;
-
-// kontrolery pod gry (uniwersalne pokoje)
-const controllersByGameKey = {
-  checkers: checkersController,
-  // szachy: chessController,
-  // literaki: literakiController,
-};
 
 // import routingu
 const authRoutes = require('./routes/authRoutes');
 const checkersRoutes = require('./routes/checkersRoutes');
 
-// middleware (Express) – wersja z maina
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
+// kontrolery pod gry (uniwersalne pokoje)
+const controllersByGameKey = {
+  checkers: checkersController,
+  // chess: chessController,
+  // literaki: literakiController,
+};
 
-      if (
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1') ||
-        origin.includes('http://localhost:') ||
-        origin.includes('http://127.0.0.1:')
-      ) {
-        return callback(null, true);
-      }
+// funkcja pomocnicza do konfiguracji cors (Z MAIN)
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // zezwól na połączenie bez origin
 
-      const localNetworkPattern =
-        /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
+    const allowedLocalhost = ['localhost', '127.0.0.1', 'http://localhost:', 'http://127.0.0.1:'];
+    if (allowedLocalhost.some(host => origin.includes(host))) return callback(null, true);
 
-      if (localNetworkPattern.test(origin)) {
-        return callback(null, true);
-      }
+    const localNetworkPattern =
+      /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+):\d+$/;
+    if (localNetworkPattern.test(origin)) return callback(null, true);
 
-      callback(new Error('Brak dostępu z tego źródła'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST'],
-  })
-);
+    callback(new Error('Brak dostępu z tego źródła'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST'],
+};
 
+// middleware (Z MAIN)
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
@@ -100,11 +56,14 @@ app.get('/', (req, res) => {
   res.send('Serwer Express działa 🎉');
 });
 
-// ===== UNIVERSAL ROOMS EMIT =====
+// socket.io (Z MAIN)
+const io = new Server(server, { cors: corsOptions });
+
+// ===== TWOJE: UNIVERSAL ROOMS EMIT (dla listy pokoi) =====
 function emitRoomsUpdated(gameKey) {
   try {
     const controller = controllersByGameKey[gameKey];
-    if (!controller?.listRoomsSocket) return;
+    if (!controller || typeof controller.listRoomsSocket !== 'function') return;
 
     const rooms = controller.listRoomsSocket();
     io.emit('rooms:updated', { gameKey, rooms });
@@ -113,8 +72,8 @@ function emitRoomsUpdated(gameKey) {
   }
 }
 
-// ===== Socket.IO auth (z maina) =====
-io.use((socket, next) => {
+// weryfikacja tokenu dla polaczen socket.io (Z MAIN + tokenExpired)
+io.use(async (socket, next) => {
   const cookies = socket.handshake.headers.cookie;
 
   if (!cookies) {
@@ -133,10 +92,15 @@ io.use((socket, next) => {
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
+      if (err.name === 'TokenExpiredError') {
+        console.log('Socket.IO: Token wygasł - wymaga ponownego połączenia');
+        return next(new Error('Token wygasł'));
+      }
       console.log('Socket.IO: Odrzucono połączenie - nieprawidłowy token');
       return next(new Error('Nieprawidłowy token'));
     }
 
+    // dodanie danych użytkownika do obiektu socket
     socket.user = {
       userId: decoded.userId,
       username: decoded.username,
@@ -150,18 +114,13 @@ io.use((socket, next) => {
 
 // ===== obsługa połączeń socket.io =====
 io.on('connection', (socket) => {
-  console.log(
-    'Użytkownik połączył się:',
-    socket.user?.username || 'Nieznany',
-    'ID:',
-    socket.id
-  );
+  console.log('Użytkownik połączył się:', socket.user?.username || 'Nieznany', 'ID:', socket.id);
 
   // liczba użytkowników online
   io.emit('online-count', io.engine.clientsCount);
 
+  // walidacja i sanitizacja wiadomosci (Z MAIN)
   socket.on('chat-message', (data) => {
-    // walidacja i sanitizacja wiadomości (z maina)
     if (!data.message || typeof data.message !== 'string') {
       socket.emit('error', 'Nieprawidłowa wiadomość');
       return;
@@ -192,7 +151,7 @@ io.on('connection', (socket) => {
     io.emit('chat-message', message);
   });
 
-  // ===== CHECKERS SOCKETS (Twoje) =====
+  // ===== CHECKERS SOCKETS (TWOJE) =====
   socket.on('checkers:createGame', (payload, cb) => {
     try {
       const game = checkersController.createGameSocket(payload);
@@ -201,7 +160,6 @@ io.on('connection', (socket) => {
       socket.join(room);
       io.to(room).emit('checkers:state', game);
 
-      // uniwersalny update pokoi
       emitRoomsUpdated('checkers');
 
       cb?.({ ok: true, game });
@@ -236,8 +194,6 @@ io.on('connection', (socket) => {
     socket.join(room);
 
     io.to(room).emit('checkers:state', result.game);
-
-    // uniwersalny update pokoi
     emitRoomsUpdated('checkers');
 
     cb?.({ ok: true, game: result.game });
@@ -283,7 +239,7 @@ io.on('connection', (socket) => {
 
         oldGame.rematchReady = { left: false, right: false };
 
-        // update listy pokoi (stara gra nie jest ongoing)
+        // po rematchu: stara gra nie jest ongoing -> update listy pokoi
         emitRoomsUpdated('checkers');
       }
 
@@ -310,7 +266,6 @@ io.on('connection', (socket) => {
 
         if (data?.game) io.to(`checkers:${gameId}`).emit('checkers:state', data.game);
 
-        // update listy pokoi
         emitRoomsUpdated('checkers');
       },
     };
@@ -318,7 +273,7 @@ io.on('connection', (socket) => {
     checkersController.makeMove(req, res);
   });
 
-  // ===== UNIVERSAL ROOMS SOCKETS (Twoje) =====
+  // ===== UNIVERSAL ROOMS SOCKETS (TWOJE) =====
   socket.on('rooms:list', ({ gameKey }, cb) => {
     try {
       if (!gameKey) return cb?.({ ok: false, error: 'Brak gameKey' });
@@ -357,16 +312,13 @@ io.on('connection', (socket) => {
     }
   });
 
+  //obluga rozlaczenia (Z MAIN)
   socket.on('disconnect', () => {
-    console.log(
-      'Użytkownik opuścił czat:',
-      socket.user?.username || 'Nieznany',
-      'ID:',
-      socket.id
-    );
+    console.log('Użytkownik opuścił czat:', socket.user?.username || 'Nieznany', 'ID:', socket.id);
     io.emit('online-count', io.engine.clientsCount);
   });
 
+  //osbluga bledow polaczenia (Z MAIN)
   socket.on('error', (err) => {
     console.error('Błąd Socket.IO:', err);
   });

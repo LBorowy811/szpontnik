@@ -21,6 +21,7 @@
 import { authAPI } from '../services/api.js'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import socket from '../services/socket.js'
 
 const router = useRouter()
 
@@ -56,6 +57,10 @@ const handleLogout = async () => {
     await authAPI.logout()
   } catch (error) {
     console.error('Błąd podczas wylogowywania:', error)
+  }
+
+  if (socket && socket.connected) {
+    socket.disconnect()
   }
 
   // usunięcie danych użytkownika z localStorage

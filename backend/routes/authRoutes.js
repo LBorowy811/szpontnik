@@ -9,6 +9,9 @@ router.post('/register', authController.register);
 //logowanie
 router.post('/login', authController.login);
 
+//odświeżanie tokenu
+router.post('/refresh', authController.refresh);
+
 //wylogowanie
 router.post('/logout' ,authController.logout);
 
