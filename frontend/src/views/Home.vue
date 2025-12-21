@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <div class="cards">
-      <div class="card" v-for="game in games" :key="game.name">
+      <div class="card" v-for="game in games" :key="game.name" @click="openGame(game)">
         <img :src="game.img" :alt="game.name" />
         <span>{{ game.name }}</span>
       </div>
@@ -10,6 +10,8 @@
 </template>
 
 <script setup>
+import { useRouter } from "vue-router";
+
 const games = [
   { name: "Szachy", img: new URL('../assets/home/szachy.png', import.meta.url).href },
   { name: "Warcaby", img: new URL('../assets/home/warcaby.png', import.meta.url).href },
@@ -27,6 +29,18 @@ const games = [
   { name: "Tryktrak", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
   { name: "Makao", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
 ];
+function openGame(game) {
+  const path = gameRoutes[game.name];
+  if (!path) return;
+  router.push(path);
+}
+
+const router = useRouter();
+
+const gameRoutes = {
+  "Warcaby": "/games/checkers/rooms",
+};
+
 </script>
 
 <style scoped>
