@@ -16,10 +16,11 @@ i umieść w nim poniższe zmienne środowiskowe:
 
 ```
 ACCESS_TOKEN_SECRET='TWÓJ_WYGENEROWANY_KLUCZ'
+REFRESH_TOKEN_SECRET='TWÓJ_WYGENEROWANY_KLUCZ'
 NODE_ENV=development
 ```
 -------------------------------------------------------
-2. Generowanie ACCESS_TOKEN_SECRET
+2. Generowanie ACCESS_TOKEN_SECRET i REFRESH_TOKEN_SECRET
 -------------------------------------------------------
 
 Aby wygenerować unikalny klucz, użyj Node.js:
@@ -29,7 +30,7 @@ Aby wygenerować unikalny klucz, użyj Node.js:
    ```node```
 3. Wpisz komendę:
    ```require('crypto').randomBytes(64).toString('hex')```
-4. Skopiuj wygenerowany klucz i wklej go do pliku `.env` w miejsce ```'TWÓJ_WYGENEROWANY_KLUCZ'```.
+4. Skopiuj wygenerowany klucz i wklej go do pliku `.env` w miejsca ```'TWÓJ_WYGENEROWANY_KLUCZ'```.
 
 -------------------------------------------------------
 3. Instalacja zależności
