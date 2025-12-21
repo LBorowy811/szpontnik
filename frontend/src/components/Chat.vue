@@ -163,8 +163,8 @@ const closeChat = () => emit('close')
 <style scoped>
 .chat-overlay {
   position: fixed;
-  bottom: 70px;
-  right: 20px;
+  bottom: 20px;
+  right: 32px;
   width: 400px;
   height: 500px;
   z-index: 1000;
