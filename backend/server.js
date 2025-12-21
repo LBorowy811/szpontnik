@@ -39,13 +39,8 @@ const corsOptions = {
     callback(new Error('Brak dostępu z tego źródła'));
   },
   credentials: true,
-<<<<<<< HEAD
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }
-=======
-  methods: ['GET', 'POST'],
-};
->>>>>>> origin/main
 
 // middleware (Z MAIN)
 app.use(cors(corsOptions));

@@ -4,11 +4,8 @@ import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Settings from '../views/Settings.vue'
-<<<<<<< HEAD
 import AccountSettings from '../views/AccountSettings.vue'
-=======
 import gamesRoutes from '@/games/games-router.js'
->>>>>>> origin/main
 
 // weryfikacja tokenu przez endpoint /auth/verify (prawidłowość tokenu i jego aktualność)
 const requireAuth = async (to, from, next) => {
