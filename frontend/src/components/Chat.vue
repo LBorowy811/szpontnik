@@ -81,9 +81,7 @@ const sendMessage = () => {
   if (!user) return
 
   socket.emit('chat-message', {
-    username: user.username,
-    message: newMessage.value.trim(),
-    userId: user.id
+    message: newMessage.value.trim()
   })
 
   newMessage.value = ''
@@ -109,6 +107,14 @@ onMounted(() => {
   if (!user) return
   currentUserId.value = user.id
 
+  // sprawdzenie aktualnego stanu połączenia
+  isConnected.value = socket.connected
+  
+  // próba połączenia jeśli nie jest połączony
+  if (!socket.connected) {
+    socket.connect()
+  }
+
   socket.on('connect', () => { isConnected.value = true })
   socket.on('disconnect', () => { isConnected.value = false })
 
@@ -130,6 +136,8 @@ onUnmounted(() => {
   socket.off('disconnect')
   socket.off('chat-message')
   socket.off('online-count')
+  window.removeEventListener('userLogin', checkLoginStatus)
+  window.removeEventListener('storage', checkLoginStatus)
 })
 
 const closeChat = () => emit('close')
@@ -331,4 +339,3 @@ const closeChat = () => emit('close')
   background: var(--font-color);
 }
 </style>
-

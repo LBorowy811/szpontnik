@@ -1,4 +1,5 @@
 const connectToDatabase = require('../database/database');
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
 // rejestracja
@@ -45,6 +46,9 @@ exports.register = async (req, res) => {
         return res.status(400).json({ message: 'Użytkownik o takim loginie już istnieje.' });
       }
     }
+
+    console.error('Błąd podczas rejestracji:', err);
+    return res.status(500).json({ message: 'Błąd serwera podczas rejestracji.' });
   }
 };
 
@@ -75,9 +79,46 @@ exports.login = async (req, res) => {
     }
 
     const { password: _, ...userWithoutPassword } = user;
-    res.json({ message: `Witaj, ${user.username}!`, user: userWithoutPassword });
+
+    // generowanie tokenu
+    const token = jwt.sign(
+      {  
+        userId: user.id,
+        username: user.username,
+        login: user.login
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: '2h' }
+    );
+
+    // ustawienie tokenu w ciasteczku
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+      maxAge: 7200000 // 2 godziny w milisekundach
+    });
+
+    // zwrócenie informacji o użytkowniku (bez tokenu)
+    res.json({ 
+      message: `Witaj, ${user.username}!`, 
+      user: userWithoutPassword, 
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Błąd serwera.' });
   }
 };
+
+// wylogowanie
+exports.logout = (req, res) => {
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+    maxAge: 0 //natychmiastowe wygaszenie ciasteczka
+  });
+
+  res.json({ message: 'Wylogowano pomyślnie.' });
+}
