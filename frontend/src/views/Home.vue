@@ -21,9 +21,9 @@ const games = [
   { name: "Kalambury", img: new URL('../assets/home/kalambury.png', import.meta.url).href },
   { name: "Kości", img: new URL('../assets/home/kości.png', import.meta.url).href },
   { name: "Literaki", img: new URL('../assets/home/literaki.png', import.meta.url).href },
-  { name: "Kulki", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
-  { name: "Mahjong", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
-  { name: "Monopol", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
+  { name: "Kółko i krzyżyk", img: new URL('../assets/home/kolko-i-krzyzyk.png', import.meta.url).href },
+  { name: "Mahjong", img: new URL('../assets/home/mahjong.png', import.meta.url).href },
+  { name: "Monopol", img: new URL('../assets/home/monopol.png', import.meta.url).href },
   { name: "Piłka", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
   { name: "Reversi", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
   { name: "Tryktrak", img: new URL('../assets/home/placeholder.png', import.meta.url).href },
@@ -56,7 +56,7 @@ const gameRoutes = {
   flex-direction: column;
   align-items: center;
   background-color: var(--bg-color);
-  border: 2px solid rgba(255, 255, 255, 0.251);
+  border: 2px solid var(--border-color-dimmed);
   padding: 0.5rem;
   cursor: pointer;
   transition: border-color 0.3s ease, transform 0.2s ease;

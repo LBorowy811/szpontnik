@@ -1,9 +1,27 @@
 @import './base.css';
 
 :root {
+  --bg-app-color: #181818;
   --bg-color: #222222;
   --font-color: #f1f5f9;
   --active-item: #42b883;
+  --border-color: #f1f5f9;
+  --border-color-dimmed: rgba(255, 255, 255, 0.251);
+  --form-input-bg-color: rgba(255, 255, 255, 0.05);
+  --form-input-placeholder: rgba(255, 255, 255, 0.5);
+  --icon-filter: none;
+}
+
+html.light {
+  --bg-app-color: #d9d9d9;
+  --bg-color: #e7e7e7;
+  --font-color: #181818;
+  --active-item: #42b883;
+  --border-color: #181818;
+  --border-color-dimmed: rgba(0, 0, 0, 0.25);
+  --form-input-bg-color: rgba(0, 0, 0, 0.05);
+  --form-input-placeholder: rgba(0, 0, 0, 0.5);
+  --icon-filter: invert(1);
 }
 
 #app {

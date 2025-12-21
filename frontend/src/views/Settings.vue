@@ -33,7 +33,7 @@
   flex-direction: column;
   align-items: center;
   background-color: var(--bg-color);
-  border: 2px solid rgba(255, 255, 255, 0.251);
+  border: 2px solid var(--border-color-dimmed);
   padding: 0.5rem;
   cursor: pointer;
   transition: border-color 0.3s ease, transform 0.2s ease;

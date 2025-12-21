@@ -1,40 +1,50 @@
 <template>
-  <div class="sidebar">
-    <div class="menu">
-      <div class="menu-item">
-        <img src="../assets/sidebar/console.png" alt="Casual" class="icon" />
-        <span>Casual</span>
+  <div class="sidebar-wrapper">
+    <div class="sidebar">
+      <div class="menu">
+        <div class="menu-item">
+          <img src="../assets/sidebar/console.png" alt="Casual" class="icon" />
+          <span>Casual</span>
+        </div>
+        <div class="menu-item">
+          <img src="../assets/sidebar/ranking.png" alt="Rankingowa" class="icon" />
+          <span>Rankingowa</span>
+        </div>
+        <div class="menu-item">
+          <img src="../assets/sidebar/trophy.png" alt="Turnieje" class="icon" />
+          <span>Turnieje</span>
+        </div>
       </div>
-      <div class="menu-item">
-        <img src="../assets/sidebar/ranking.png" alt="Rankingowa" class="icon" />
-        <span>Rankingowa</span>
-      </div>
-      <div class="menu-item">
-        <img src="../assets/sidebar/trophy.png" alt="Turnieje" class="icon" />
-        <span>Turnieje</span>
+      <div class="bottom">
+        <div v-if="isLoggedIn" class="menu-item" @click="toggleChat">
+          <img src="../assets/sidebar/chat.png" alt="Czat" class="icon">
+          <span>Czat</span>
+          <span v-if="unreadCount > 0" class="unread-badge-sidebar">{{ unreadCount }}</span>
+        </div>
+        <div class="menu-item" @click="goToSettings">
+          <img src="../assets/sidebar/setting.png" alt="Profil" class="icon" />
+          <span>Profil</span>
+        </div>
+        <div class="menu-item" @click="toggleTheme">
+          <img src="../assets/sidebar/theme.png" alt="Motyw" class="icon"/>
+          <span>Motyw</span>
+        </div>
       </div>
     </div>
-    <div class="bottom">
-      <div v-if="isLoggedIn" class="menu-item" @click="toggleChat">
-        <img src="../assets/sidebar/chat.png" alt="Czat" class="icon">
-        <span>Czat</span>
-        <span v-if="unreadCount > 0" class="unread-badge-sidebar">{{ unreadCount }}</span>
-      </div>
-      <div class="menu-item" @click="goToSettings">
-        <img src="../assets/sidebar/setting.png" alt="Profil" class="icon" />
-        <span>Profil</span>
-      </div>
-    </div>
+    <Chat v-if="isLoggedIn" :isOpen="isChatOpen" @close="closeChat" @newMessage="handleNewMessage" @chatOpened="handleChatOpened" />
   </div>
-  <Chat v-if="isLoggedIn" :isOpen="isChatOpen" @close="closeChat" @newMessage="handleNewMessage" @chatOpened="handleChatOpened" />
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useTheme } from '../assets/theme'
 import Chat from './Chat.vue'
 
 const router = useRouter()
+
+//motyw
+const { toggleTheme } = useTheme();
 
 // stan czatu
 const isLoggedIn = ref(false)
@@ -88,13 +98,16 @@ const goToSettings = () => {
   router.push('/settings')
 }
 
-// custom event wywoływany po zalogowaniu
-window.addEventListener('userLogin', checkLoginStatus)
-window.addEventListener('storage', checkLoginStatus)
-
 onMounted(() => {
   checkLoginStatus()
+  window.addEventListener('userLogin', checkLoginStatus)
+  window.addEventListener('storage', checkLoginStatus)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('userLogin', checkLoginStatus);
+  window.removeEventListener('storage', checkLoginStatus);
+});
 </script>
 
 <style scoped>
@@ -116,7 +129,7 @@ onMounted(() => {
 }
 
 .sidebar:hover {
-  border-color: white;
+  border-color: var(--border-color);
 }
 
 .menu {
@@ -152,7 +165,7 @@ onMounted(() => {
 .icon {
   width: 32px;
   height: 32px;
-  filter: brightness(0) invert(1);
+  filter: var(--icon-filter);
 }
 
 .menu-item:hover .icon {
