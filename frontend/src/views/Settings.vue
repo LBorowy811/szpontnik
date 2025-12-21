@@ -1,10 +1,10 @@
 <template>
   <div class="home">
     <div class="cards">
-      <div class="card">
+      <router-link to="/account-settings" class="card">
         <img src="../assets/ustawienia/konto.png"/>
         <span>Ustawienia konta</span>
-      </div>
+      </router-link>
       <div class="card">
         <img src="../assets/ustawienia/ustawienia.png"/>
         <span>Ustawienia witryny</span>

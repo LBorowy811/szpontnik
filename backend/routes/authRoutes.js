@@ -27,4 +27,7 @@ router.get('/verify', authenticateToken, (req, res) => {
     });
 });
 
+//aktualizacja danych konta
+router.put('/update-account', authenticateToken, authController.updateAccount);
+
 module.exports = router;

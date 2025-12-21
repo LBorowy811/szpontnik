@@ -4,6 +4,7 @@ import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Settings from '../views/Settings.vue'
+import AccountSettings from '../views/AccountSettings.vue'
 
 // weryfikacja tokenu przez endpoint /auth/verify (prawidłowość tokenu i jego aktualność)
 const requireAuth = async (to, from, next) => {
@@ -48,6 +49,12 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: Settings,
+    beforeEnter: requireAuth,
+  },
+  {
+    path: '/account-settings',
+    name: 'AccountSettings',
+    component: AccountSettings,
     beforeEnter: requireAuth,
   },
 ]
