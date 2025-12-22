@@ -14,6 +14,9 @@
         @square-click="handleSquareClick"
       />
     </template>
+    <template #side>
+      <RoomChat game-key="checkers" :game-id="state.gameId" />
+    </template>
   </GameLayout>
   <div v-if="state.status !== 'ongoing'" class="end-modal-backdrop">
     <div class="end-modal">
@@ -43,6 +46,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import GameLayout from "@/games/GameLayout.vue";
 import BoardCheckers from "@/components/checkers/BoardCheckers.vue";
+import RoomChat from "@/components/common/RoomChat.vue";
 import socket from "@/services/socket";
 import { makeCheckersStartPieces } from "@/components/checkers/checkersStartPieces.js";
 

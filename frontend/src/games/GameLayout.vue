@@ -180,9 +180,10 @@ function formatTime(time) {
 
 #side-panel {
   width: 260px;
-  min-height: 200px;
+  height: 500px;
   background: black;
   border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .playersJoinInfo {
