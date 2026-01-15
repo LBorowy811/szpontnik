@@ -2,10 +2,8 @@ import axios from 'axios'
 
 // funkcja do okreslenia baseURL w zaleznosci od srodowiska
 const getApiBaseURL = () => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return '/api';
-  }
-  return `http://${window.location.hostname}:3000/api`;
+  // ZAWSZE używaj /api - proxy Vite przekieruje na localhost:3000
+  return '/api';
 }
 
 const api = axios.create({

@@ -165,17 +165,19 @@ exports.login = async (req, res) => {
     // ustawienie access tokenu w ciasteczku
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
-      maxAge: ACCESS_COOKIE_MAX_AGE
+      secure: false, // Wyłączone dla localhost
+      sameSite: 'Lax',
+      maxAge: ACCESS_COOKIE_MAX_AGE,
+      path: '/'
     });
 
     // ustawienie refresh tokenu w ciasteczku
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
-      maxAge: REFRESH_COOKIE_MAX_AGE
+      secure: false, // Wyłączone dla localhost
+      sameSite: 'Lax',
+      maxAge: REFRESH_COOKIE_MAX_AGE,
+      path: '/'
     });
 
     // zwrócenie informacji o użytkowniku

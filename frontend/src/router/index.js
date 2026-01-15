@@ -5,6 +5,7 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Settings from '../views/Settings.vue'
 import AccountSettings from '../views/AccountSettings.vue'
+import Chinczyk from '../views/Chinczyk.vue'
 import gamesRoutes from '@/games/games-router.js'
 
 // weryfikacja tokenu przez endpoint /auth/verify (prawidłowość tokenu i jego aktualność)
@@ -56,6 +57,12 @@ const routes = [
     path: '/account-settings',
     name: 'AccountSettings',
     component: AccountSettings,
+    beforeEnter: requireAuth,
+  },
+  {
+    path: '/chinczyk',
+    name: 'Chinczyk',
+    component: Chinczyk,
     beforeEnter: requireAuth,
   },
   {

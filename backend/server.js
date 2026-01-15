@@ -7,8 +7,10 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const checkersController = require('./controllers/checkersController');
+const chinczykController = require('./controllers/chinczykController');
 const setupGlobalChatHandler = require('./socketHandlers/globalchatHandler');
 const setupGameRoomChatHandler = require('./socketHandlers/gameRoomChatHandler');
+const setupChinczykHandler = require('./socketHandlers/chinczykHandler');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,10 +20,12 @@ const PORT = 3000;
 // import routingu
 const authRoutes = require('./routes/authRoutes');
 const checkersRoutes = require('./routes/checkersRoutes');
+const chinczykRoutes = require('./routes/chinczykRoutes');
 
 // kontrolery pod gry (uniwersalne pokoje)
 const controllersByGameKey = {
   checkers: checkersController,
+  chinczyk: chinczykController,
   // chess: chessController,
   // literaki: literakiController,
 };
@@ -52,6 +56,7 @@ app.use(cookieParser());
 // routing
 app.use('/api/auth', authRoutes);
 app.use('/api/checkers', checkersRoutes);
+app.use('/api/chinczyk', chinczykRoutes);
 
 // testowy endpoint
 app.get('/', (req, res) => {
@@ -126,6 +131,9 @@ io.on('connection', (socket) => {
 
   // czat w pokojach gier (uniwersalny)
   setupGameRoomChatHandler(socket, io);
+
+  // chinczyk handler
+  setupChinczykHandler(socket, io);
 
   // ===== CHECKERS SOCKETS (TWOJE) =====
   socket.on('checkers:createGame', (payload, cb) => {

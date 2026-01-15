@@ -39,6 +39,7 @@ const router = useRouter();
 
 const gameRoutes = {
   "Warcaby": "/games/checkers/rooms",
+  "Chińczyk": "/chinczyk",
 };
 
 </script>

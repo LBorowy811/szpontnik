@@ -3,10 +3,18 @@
     <div class="chat-header">Czat gry</div>
 
     <div class="messages" ref="messages">
-      <div v-for="(m, i) in messages" :key="i" class="message">
+      <div 
+        v-for="(m, i) in messages" 
+        :key="i" 
+        class="message"
+        :class="{ 'system-message': m.isSystem }"
+      >
         <span class="dot" :style="{ background: m.color || '#888' }"></span>
         <div class="bubble">
-          <div class="meta"><strong>{{ m.author }}</strong> <small>{{ m.time }}</small></div>
+          <div class="meta">
+            <strong>{{ m.author }}</strong> 
+            <small>{{ m.time }}</small>
+          </div>
           <div class="text">{{ m.text }}</div>
         </div>
       </div>
@@ -27,33 +35,38 @@
 <script>
 export default {
   name: 'ChinczykChat',
+  props: {
+    messages: {
+      type: Array,
+      default: () => []
+    }
+  },
   data() {
     return {
-      text: '',
-      messages: [
-        { author: 'System', text: 'Witaj w czacie gry', time: this.now(), color: '#333' }
-      ]
+      text: ''
     };
   },
   methods: {
-    now() {
-      const d = new Date();
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    },
     sendMessage() {
       const t = this.text.trim();
       if (!t) return;
-      const msg = { author: 'Ty', text: t, time: this.now(), color: '#666' };
-      this.messages.push(msg);
+      this.$emit('send-message', t);
       this.text = '';
       this.scrollBottom();
-
     },
     scrollBottom() {
       this.$nextTick(() => {
         const el = this.$refs.messages;
         if (el) el.scrollTop = el.scrollHeight;
       });
+    }
+  },
+  watch: {
+    messages: {
+      handler() {
+        this.scrollBottom();
+      },
+      deep: true
     }
   }
 };
@@ -95,6 +108,11 @@ export default {
   display: flex;
   gap: 8px;
   align-items: flex-start;
+}
+
+.message.system-message .bubble {
+  background: #e3f2fd;
+  font-style: italic;
 }
 
 .dot {

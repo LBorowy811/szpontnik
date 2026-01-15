@@ -1,8 +1,14 @@
 <template>
   <div class="dice-wrap">
-    <button class="roll-btn" :disabled="rolling" @click="rollDice" aria-live="polite">
-      <span v-if="!rolling">Rzuć kostką</span>
-      <span v-else>Rzucam…</span>
+    <button 
+      class="roll-btn" 
+      :disabled="rolling || !canRoll" 
+      @click="rollDice" 
+      aria-live="polite"
+    >
+      <span v-if="!rolling && canRoll">Rzuć kostką</span>
+      <span v-else-if="rolling">Rzucam…</span>
+      <span v-else>Czekaj...</span>
     </button>
 
     <div class="cube-stage" :class="{ rolling }" @animationend="onAnimEnd">
@@ -22,28 +28,50 @@
       </div>
     </div>
 
-    <p class="result" v-if="value !== null">Wynik: <strong>{{ value }}</strong></p>
+    <p class="result" v-if="displayValue !== null">
+      Wynik: <strong>{{ displayValue }}</strong>
+    </p>
   </div>
 </template>
 
 <script>
 export default {
   name: "ChinczykDice",
+  props: {
+    canRoll: {
+      type: Boolean,
+      default: false
+    },
+    value: {
+      type: Number,
+      default: null
+    }
+  },
   data() {
     return {
       rolling: false,
-      value: null,
+      displayValue: null,
       rotX: -20,
       rotY: 20,
       targetRot: { x: -20, y: 20 }
     };
   },
+  watch: {
+    value(newVal) {
+      if (newVal !== null && newVal !== this.displayValue) {
+        this.animateToDiceValue(newVal);
+      }
+    }
+  },
   methods: {
     rollDice() {
-      if (this.rolling) return;
+      if (this.rolling || !this.canRoll) return;
+      this.$emit('roll');
+    },
+
+    animateToDiceValue(val) {
       this.rolling = true;
-      const val = Math.floor(Math.random() * 6) + 1;
-      this.value = null; // ukryj do czasu zakończenia animacji
+      this.displayValue = null;
 
       const map = {
         1: { x: 0, y: 0 },
@@ -74,16 +102,17 @@ export default {
         this.finishRoll();
       }, 1600);
     },
+
     onAnimEnd() {
       this.finishRoll();
     },
+
     finishRoll() {
       if (!this.rolling) return;
       this.rolling = false;
       clearTimeout(this._safetyTimeout);
       if (this._pendingValue != null) {
-        this.value = this._pendingValue;
-        this.$emit('rolled', this.value);
+        this.displayValue = this._pendingValue;
         this._pendingValue = null;
       }
     }
