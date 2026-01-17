@@ -4,6 +4,8 @@ import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Settings from '../views/Settings.vue'
+import Ranked from '../views/Ranked.vue'
+import Tournaments from '../views/Tournaments.vue'
 import AccountSettings from '../views/AccountSettings.vue'
 import gamesRoutes from '@/games/games-router.js'
 
@@ -50,6 +52,18 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: Settings,
+    beforeEnter: requireAuth,
+  },
+  {
+    path:'/ranked',
+    name: 'Ranked',
+    component: Ranked,
+    beforeEnter: requireAuth,
+  },
+  {
+    path:'/tournaments',
+    name: 'Tournaments',
+    component: Tournaments,
     beforeEnter: requireAuth,
   },
   {

@@ -2,18 +2,18 @@
   <div class="sidebar-wrapper">
     <div class="sidebar">
       <div class="menu">
-        <div class="menu-item">
+        <router-link to="/" class="menu-item">
           <img src="../assets/sidebar/console.png" alt="Casual" class="icon" />
           <span>Casual</span>
-        </div>
-        <div class="menu-item">
+        </router-link>
+        <router-link to="/ranked" class="menu-item">
           <img src="../assets/sidebar/ranking.png" alt="Rankingowa" class="icon" />
           <span>Rankingowa</span>
-        </div>
-        <div class="menu-item">
+        </router-link>
+        <router-link to="/tournaments" class="menu-item">
           <img src="../assets/sidebar/trophy.png" alt="Turnieje" class="icon" />
           <span>Turnieje</span>
-        </div>
+        </router-link>
       </div>
       <div class="bottom">
         <div v-if="isLoggedIn" class="menu-item" @click="toggleChat">
@@ -21,10 +21,10 @@
           <span>Czat</span>
           <span v-if="unreadCount > 0" class="unread-badge-sidebar">{{ unreadCount }}</span>
         </div>
-        <div class="menu-item" @click="goToSettings">
+        <router-link to="/settings" class="menu-item">
           <img src="../assets/sidebar/setting.png" alt="Profil" class="icon" />
           <span>Profil</span>
-        </div>
+        </router-link>
         <div class="menu-item" @click="toggleTheme">
           <img src="../assets/sidebar/theme.png" alt="Motyw" class="icon"/>
           <span>Motyw</span>
@@ -42,8 +42,6 @@ import { useTheme } from '../assets/theme'
 import Chat from './Chat.vue'
 
 const router = useRouter()
-
-//motyw
 const { toggleTheme } = useTheme();
 
 // stan czatu
@@ -51,19 +49,13 @@ const isLoggedIn = ref(false)
 const isChatOpen = ref(false)
 const unreadCount = ref(0)
 
+// stan zalogowania
 const checkLoginStatus = () => {
-  try {
-    const userData = localStorage.getItem('user')
-    if (userData) {
-      isLoggedIn.value = true
-    } else {
-      isLoggedIn.value = false
-      isChatOpen.value = false
-      unreadCount.value = 0
-    }
-  } catch (error) {
-    console.error('Błąd podczas sprawdzania stanu zalogowania:', error)
-    isLoggedIn.value = false
+  const userData = localStorage.getItem('user')
+  isLoggedIn.value = !!userData
+  if (!userData) {
+    isChatOpen.value = false
+    unreadCount = 0
   }
 }
 
@@ -79,24 +71,9 @@ const toggleChat = () => {
   }
 }
 
-const closeChat = () => {
-  isChatOpen.value = false
-}
-
-const handleNewMessage = () => {
-  if (!isChatOpen.value) {
-    unreadCount.value++
-  }
-}
-
-const handleChatOpened = () => {
-  unreadCount.value = 0
-}
-
-// przejście do ustawień
-const goToSettings = () => {
-  router.push('/settings')
-}
+const closeChat = () => { isChatOpen.value = false }
+const handleNewMessage = () => { if (!isChatOpen.value) { unreadCount.value++} }
+const handleChatOpened = () => { unreadCount.value = 0 }
 
 onMounted(() => {
   checkLoginStatus()
@@ -107,7 +84,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('userLogin', checkLoginStatus);
   window.removeEventListener('storage', checkLoginStatus);
-});
+})
 </script>
 
 <style scoped>
@@ -157,9 +134,20 @@ onUnmounted(() => {
   position: relative;
 }
 
+/* zaznaczenie aktywnego elementu dla łatwiejszego rozróżnienia trybów */
+.menu-item.router-link-exact-acitve,
+.menu-item.router-link-active,
 .menu-item:hover {
   border-color: var(--active-item);
   color: var(--active-item);
+  background: var(--bg-color);
+  text-decoration: none;
+}
+
+.menu-item.router-link-exact-active .icon,
+.menu-item.router-link-active .icon,
+.menu-item:hover .icon {
+  filter: invert(62%) sepia(41%) saturate(749%) hue-rotate(96deg) brightness(92%) contrast(89%);
 }
 
 .icon {
