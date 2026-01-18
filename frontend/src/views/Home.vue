@@ -42,6 +42,7 @@ const router = useRouter();
 
 const gameRoutes = {
   "Warcaby": "/games/checkers/rooms",
+  "Kółko i krzyżyk": "/games/tictactoe/rooms",
 };
 
 </script>

@@ -1,11 +1,12 @@
 <template>
   <div class="rooms-page">
-    <div class="topbar">
-      <h2 class="title">Pokoje — {{ gameLabel }}</h2>
-
-      <button class="create-btn" type="button" @click="openCreateModal">
-        Stwórz pokój
-      </button>
+      <div class="title">
+        <span>Pokoje: {{ gameLabel }}</span>
+      </div>
+      <div class="create">
+        <button class="create-btn" type="button" @click="openCreateModal">
+          Stwórz pokój
+        </button>
     </div>
 
     <div class="table">
@@ -42,19 +43,33 @@
       </div>
     </div>
     <div v-if="isCreateOpen" class="modal-backdrop" @click.self="closeCreateModal">
-      <div class="modal">
+      <div class="modal" @click.stop>
         <h3 class="modal-title">Utworzyć pokój?</h3>
 
         <label class="modal-label">
           Nazwa pokoju
-          <input v-model="newRoomName" class="modal-input" type="text" placeholder="nazwa pokoju" maxlength="40" @keydown.enter.prevent="confirmCreateRoom"/>
+          <input 
+            v-model="newRoomName" 
+            class="modal-input" 
+            type="text" 
+            placeholder="nazwa pokoju" 
+            maxlength="40" 
+            @keydown.enter.prevent="confirmCreateRoom"
+            @input="checkInput"/>
         </label>
 
         <div class="modal-actions">
-          <button class="modal-btn" type="button" @click="closeCreateModal">
+          <button 
+            class="modal-btn" 
+            type="button" 
+            @click="closeCreateModal">
             Anuluj
           </button>
-          <button class="modal-btn primary" type="button" :disabled="isCreating || !newRoomName.trim()" @click="confirmCreateRoom">
+          <button 
+            class="modal-btn primary" 
+            type="button" 
+            :disabled="isCreating || !newRoomName.trim()" 
+            @click="confirmCreateRoom">
             {{ isCreating ? "Tworzenie..." : "Stwórz" }}
           </button>
         </div>
@@ -74,6 +89,7 @@ const router = useRouter();
 const gameKey = computed(() => String(route.params.gameKey || ""));
 const gameLabel = computed(() => {
   if (gameKey.value === "checkers") return "Warcaby";
+  if (gameKey.value === "tictactoe") return "Kółko i krzyżyk";
   return gameKey.value;
 });
 
@@ -91,6 +107,7 @@ function openCreateModal() {
 function closeCreateModal() {
   isCreateOpen.value = false;
   isCreating.value = false;
+  newRoomName.value = "";
 }
 
 function fetchRooms() {
@@ -161,41 +178,54 @@ watch(gameKey, () => {
 
 <style scoped>
 .rooms-page{
-  max-width: 760px;
-  margin: 24px auto;
-  padding: 0 14px;
-  color: #f3f3f3;
+  color: var(--font-color);
+  gap: 1rem;
+  font-size: 1.2rem;
 }
 
-.topbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+.title {
+  border: 2px solid var(--border-color-dimmed);
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  color: var(--font-color);
+  transition: border-color 0.3s ease, color 0.3s ease;
+  cursor: default;
 }
 
-.title{
-  margin:0;
-  font-size: 20px;
-  font-weight: 800;
+.create {
+  display: flex;
+  justify-content: center;
+  margin: 1rem;
 }
 
 .create-btn{
-  border: 2px solid #f5f5f5;
-  background: #262626;
-  color: #f5f5f5;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-weight: 800;
+  border: 2px solid var(--border-color-dimmed);
+  font-size: 1.2rem;
+  width: 100%;
+  background: var(--bg-color);
+  color: var(--font-color);
+  padding: 10px;
   cursor: pointer;
+  transition: border-color 0.3s ease;
+  font-family: "JetBrains Mono";
+}
+
+.create-btn:hover {
+  border-color: var(--active-item);
+  color: var(--active-item);
 }
 
 .table{
-  border: 2px solid #444;
-  border-radius: 12px;
+  margin: 1rem;
+  border: 2px solid var(--border-color-dimmed);
   overflow: hidden;
-  background: #1f1f1f;
+  background: var(--bg-color);
+  transition: border-color 0.3s ease;
+}
+
+.table:hover {
+  border-color: var(--font-color);
 }
 
 .thead, .row{
@@ -207,36 +237,59 @@ watch(gameKey, () => {
 }
 
 .thead{
-  background: #111;
-  font-weight: 900;
+  background: var(--bg-app-color);
+  color: var(--font-color);
 }
 
 .row{
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border-color-dimmed);
+  transition: background-color 0.2s ease;
+}
+
+.row:hover {
+  background-color: rgba(66, 184, 131, 0.05);
 }
 
 .empty{
   padding: 18px 14px;
   opacity: 0.85;
+  color: var(--font-color);
 }
 
 .badge{
   display:inline-block;
   padding: 6px 10px;
-  border-radius: 999px;
   font-weight: 800;
-  border: 1px solid #555;
+  border: 1px solid var(--border-color-dimmed);
+  background: var(--bg-color);
+  color: var(--font-color);
+}
+
+.badge.waiting {
+  border-color: var(--active-item);
+  color: var(--active-item);
+}
+
+.badge.playing {
+  border-color: var(--font-color);
+  color: var(--font-color)
 }
 
 .btn{
   width: 100%;
   padding: 9px 12px;
-  border-radius: 10px;
-  border: 2px solid #f5f5f5;
-  background: #2f2f2f;
-  color: #f5f5f5;
+  border: 2px solid var(--border-color-dimmed);
+  background: var(--bg-color);
+  color: var(--font-color);
   font-weight: 800;
   cursor: pointer;
+  transition: border-color 0.3s ease, color 0.3s ease;
+  font-family: "JetBrains Mono";
+}
+
+.btn:hover {
+  border-color: var(--active-item);
+  color: var(--active-item);
 }
 
 .modal-backdrop{
@@ -249,32 +302,44 @@ watch(gameKey, () => {
 }
 
 .modal{
+  font-size: 1.2rem;
   width: 420px;
-  background: #1f1f1f;
-  border: 2px solid #444;
-  border-radius: 12px;
+  background: var(--bg-color);
+  border: 2px solid var(--border-color-dimmed);
   padding: 16px;
 }
 
 .modal-title{
   margin: 0 0 12px;
   font-size: 18px;
-  font-weight: 900;
+  font-size: 1.2rem;
+  color: var(--font-color);
 }
 
 .modal-label{
   display: grid;
+  font-size: 1.2rem;
   gap: 6px;
-  font-weight: 800;
+  color: var(--font-color);
 }
 
 .modal-input{
   padding: 10px 12px;
-  border-radius: 10px;
-  border: 2px solid #555;
-  background: #111;
-  color: #f5f5f5;
+  border: 2px solid var(--border-color-dimmed);
+  background: var(--form-input-bg-color);
+  color: var(--font-color);
   outline: none;
+  transition: border-color 0.3s ease;
+  font-family: "JetBrains Mono";
+  font-size: 1.2rem;
+}
+
+.modal-input:focus {
+  border-color: var(--active-item);
+}
+
+.modal-input::placeholder {
+  color: var(--form-input-placeholder);
 }
 
 .modal-actions{
@@ -285,21 +350,39 @@ watch(gameKey, () => {
 }
 
 .modal-btn{
+  font-family: "JetBrains Mono";
+  font-size: 1.2rem;
   padding: 10px 14px;
-  border-radius: 10px;
-  border: 2px solid #f5f5f5;
-  background: #262626;
-  color: #f5f5f5;
-  font-weight: 900;
+  border: 2px solid var(--border-color-dimmed);
+  background: var(--bg-color);
+  color: var(--font-color);
   cursor: pointer;
+  transition: border-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.modal-btn:hover {
+  border-color: red;
+  color: red;
+  transform: translateY(-2px);
+}
+
+.modal-btn.primary:hover {
+  border-color: var(--active-item);
+  color: var(--active-item);
 }
 
 .modal-btn.primary{
-  background: #2f2f2f;
+  background: var(--bg-color);
 }
 
 .modal-btn:disabled{
   opacity: 0.45;
   cursor: not-allowed;
+  transform: none;
+}
+
+.modal-btn:disabled:hover {
+  border-color: var(--border-color-dimmed);
+  color: var(--font-color);
 }
 </style>

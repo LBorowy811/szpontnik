@@ -7,6 +7,7 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const checkersController = require('./controllers/checkersController');
+const tictactoeController = require('./controllers/tictactoeController');
 const setupGlobalChatHandler = require('./socketHandlers/globalchatHandler');
 const setupGameRoomChatHandler = require('./socketHandlers/gameRoomChatHandler');
 
@@ -24,6 +25,7 @@ const controllersByGameKey = {
   checkers: checkersController,
   // chess: chessController,
   // literaki: literakiController,
+  tictactoe: tictactoeController,
 };
 
 // funkcja pomocnicza do konfiguracji cors (Z MAIN)
@@ -249,6 +251,125 @@ io.on('connection', (socket) => {
     checkersController.makeMove(req, res);
   });
 
+  socket.on('tictactoe:createGame', (payload, cb) => {
+    try {
+      const game = tictactoeController.createGameSocket(payload);
+      const room = `tictactoe:${game.id}`;
+      
+      socket.join(room);
+      io.to(room).emit('tictactoe:state', game);
+
+      emitRoomsUpdated('tictactoe');
+
+      cb?.({ ok: true, game });
+    } catch (e) {
+      cb?.({ ok: false, error: e?.message || 'createGame socket error' });
+    }
+  });
+
+  socket.on('tictactoe:watchGame', ({ gameId }, cb) => {
+    const game = tictactoeController.getGameSocket(gameId);
+    if (!game) return cb?.({ ok: false, error: 'Gra nie istnieje' });
+
+    const room = `tictactoe:${gameId}`;
+    socket.join(room);
+
+    io.to(room).emit('tictactoe:state', game);
+    cb?.({ ok: true, game });
+  });
+
+  socket.on('tictactoe:joinGame', ({ gameId, side, username, userId }, cb) => {
+    const result = tictactoeController.joinGameSocket({
+      gameId,
+      side,
+      username,
+      userId,
+      socketId: socket.id,
+    });
+
+    if (!result.ok) return cb?.(result);
+
+    const room = `tictactoe:${gameId}`;
+    socket.join(room);
+
+    io.to(room).emit('tictactoe:state', result.game);
+    emitRoomsUpdated('tictactoe');
+
+    cb?.({ ok: true, game: result.game });
+  });
+
+  socket.on('tictactoe:rematchReady', ({ gameId, userId }, cb) => {
+    try {
+      if (!gameId) return cb?.({ ok: false, error: 'Brak gameId' });
+      if (!userId) return cb?.({ ok: false, error: 'Brak userId' });
+
+      const result = tictactoeController.setRematchReady(gameId, userId);
+      if (!result.ok) return cb?.(result);
+
+      const roomOld = `tictactoe:${gameId}`;
+
+      io.to(roomOld).emit('tictactoe:rematchStatus', {
+        gameId,
+        count: result.count,
+        ready: result.game.rematchReady,
+      });
+
+      if (result.bothReady) {
+        const oldGame = tictactoeController.getGameSocket(gameId);
+        const newGame = tictactoeController.createRematchGameFromOld(oldGame);
+        const roomNew = `tictactoe:${newGame.id}`;
+
+        const leftSockId = newGame.players?.left?.socketId;
+        const rightSockId = newGame.players?.right?.socketId;
+
+        if (leftSockId && io.sockets.sockets.get(leftSockId)) {
+          const s = io.sockets.sockets.get(leftSockId);
+          s.leave(roomOld);
+          s.join(roomNew);
+        }
+        if (rightSockId && io.sockets.sockets.get(rightSockId)) {
+          const s = io.sockets.sockets.get(rightSockId);
+          s.leave(roomOld);
+          s.join(roomNew);
+        }
+
+        io.to(roomNew).emit('tictactoe:state', newGame);
+        io.to(roomNew).emit('tictactoe:rematchStarted', {newGameId: newGame.Id});
+
+        oldGame.rematchReady = { left: false, right: false };
+        emitRoomsUpdated('tictactoe');
+      }
+
+      cb?.({ ok: true, count: result.count });
+    } catch (e) {
+      cb?.({ ok: false, error: e?.message || 'rematchReady error' });
+    }
+  });
+
+  socket.on('tictactoe:move', ({ gameId, ...moveData }, callback) => {
+    if (!gameId) return callback?.({ ok: false, error: 'Brak gameId' });
+
+    const req = { params: { id: gameId }, body: { ...moveData } };
+    const res = {
+      status: (code) => {
+        res._status = code;
+        return res;
+      },
+      json: (data) => {
+        if (res.status && res._status >= 400) {
+          return callback?.({ ok: false, error: data?.error || 'Błąd ruchu' });
+        }
+        callback?.({ ok: true, data });
+
+        if (data?.game) io.to(`tictactoe:${gameId}`).emit('tictactoe:state', data.game);
+
+        emitRoomsUpdated('tictactoe');
+      },
+    };
+
+    tictactoeController.makeMove(req, res);
+  });
+
   // ===== UNIVERSAL ROOMS SOCKETS (TWOJE) =====
   socket.on('rooms:list', ({ gameKey }, cb) => {
     try {
@@ -280,6 +401,7 @@ io.on('connection', (socket) => {
       const room = `${gameKey}:${game.id}`;
       socket.join(room);
 
+      io.to(room).emit(`${gameKey}:state`, game);
       emitRoomsUpdated(gameKey);
 
       cb?.({ ok: true, roomId: game.id });
@@ -291,6 +413,56 @@ io.on('connection', (socket) => {
   //obluga rozlaczenia (Z MAIN)
   socket.on('disconnect', () => {
     console.log('Użytkownik opuścił czat:', socket.user?.username || 'Nieznany', 'ID:', socket.id);
+    
+    if (socket.user?.userId) {
+      const userId = socket.user.userId;
+      
+      // Usuń gracza ze wszystkich gier
+      for (const [gameKey, controller] of Object.entries(controllersByGameKey)) {
+        if (!controller || typeof controller.getGameSocket !== 'function' || typeof controller.listRoomsSocket !== 'function') continue;
+        
+        const rooms = controller.listRoomsSocket();
+        
+        for (const room of rooms) {
+          const game = controller.getGameSocket(room.id);
+          if (!game) continue;
+          
+          const left = game.players?.left;
+          const right = game.players?.right;
+          
+          let updated = false;
+          
+          if (left && String(left.userId) === String(userId)) {
+            game.players.left = null;
+            updated = true;
+          }
+          
+          if (right && String(right.userId) === String(userId)) {
+            game.players.right = null;
+            updated = true;
+          }
+          
+          if (updated) {
+            const roomName = `${gameKey}:${game.id}`;
+            
+            // Sprawdź czy pokój jest pusty (nie ma żadnych graczy)
+            const hasNoPlayers = !game.players?.left && !game.players?.right;
+            
+            if (hasNoPlayers && controller.deleteGameSocket) {
+              // Usuń pusty pokój
+              controller.deleteGameSocket(game.id);
+              io.to(roomName).emit(`${gameKey}:state`, null);
+            } else {
+              // Wyślij zaktualizowany stan gry
+              io.to(roomName).emit(`${gameKey}:state`, game);
+            }
+            
+            emitRoomsUpdated(gameKey);
+          }
+        }
+      }
+    }
+    
     io.emit('online-count', io.engine.clientsCount);
   });
 

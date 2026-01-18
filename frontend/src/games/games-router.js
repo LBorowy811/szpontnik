@@ -14,4 +14,9 @@ export default [
     name: "Scrable",
     component: () => import("./scrable/ScrableView.vue"),
   },
+  {
+    path: "/games/tictactoe",
+    name: "TicTacToe",
+    component: () => import("./tictactoe/TicTacToeView.vue"),
+  },
 ];

@@ -125,23 +125,23 @@ watch(() => props.gameId, () => {
 .room-chat {
   width: 100%;
   height: 100%;
-  max-height: 500px;
   display: flex;
   flex-direction: column;
-  background: #1a1a1a;
-  border-radius: 8px;
+  background: var(--bg-color);
+  border: 2px solid var(--border-color-dimmed);
   overflow: hidden;
 }
 
 .room-chat-header {
   padding: 12px;
-  border-bottom: 2px solid #444;
-  background: #1f1f1f;
+  border-bottom: 2px solid var(--border-color-dimmed);
+  background: var(--bg-app-color);
+  flex-shrink: 0;
 }
 
 .room-chat-header h4 {
   margin: 0;
-  color: #f5f5f5;
+  color: var(--font-color);
   font-size: 0.95rem;
   font-weight: 600;
 }
@@ -161,7 +161,6 @@ watch(() => props.gameId, () => {
   flex-direction: column;
   gap: 4px;
   padding: 6px 8px;
-  border-radius: 4px;
   font-size: 0.85rem;
 }
 
@@ -188,7 +187,7 @@ watch(() => props.gameId, () => {
 
 .room-username {
   font-weight: 600;
-  color: #4a9eff;
+  color: var(--active-item);
 }
 
 .room-timestamp {
@@ -197,7 +196,7 @@ watch(() => props.gameId, () => {
 }
 
 .room-message-content {
-  color: #e0e0e0;
+  color: var(--font-color);
   word-wrap: break-word;
   line-height: 1.4;
 }
@@ -206,24 +205,24 @@ watch(() => props.gameId, () => {
   display: flex;
   gap: 6px;
   padding: 8px;
-  border-top: 2px solid #444;
-  background: #1f1f1f;
+  border-top: 2px solid var(--border-color-dimmed);
+  background: var(--bg-app-color);
 }
 
 .room-chat-input {
   flex: 1;
   padding: 6px 8px;
-  background-color: #151515;
-  border: 1px solid #444;
-  border-radius: 4px;
-  color: #f5f5f5;
+  background-color: var(--form-input-bg-color);
+  border: 1px solid var(--border-color-dimmed);
+  color: var(--font-color);
   font-size: 0.85rem;
   font-family: inherit;
+  outline: none;
 }
 
 .room-chat-input:focus {
   outline: none;
-  border-color: #666;
+  border-color: var(--active-item);
 }
 
 .room-chat-input:disabled {
@@ -233,17 +232,19 @@ watch(() => props.gameId, () => {
 
 .room-send-button {
   padding: 6px 12px;
-  background-color: #2a2a2a;
-  border: 1px solid #444;
-  border-radius: 4px;
-  color: #f5f5f5;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color-dimmed);
+  color: var(--font-color);
   font-size: 0.85rem;
   cursor: pointer;
   font-weight: 600;
+  transition: border-color 0.3s ease, color 0.3s ease;
 }
 
 .room-send-button:hover:not(:disabled) {
-  background-color: #333;
+  background-color: var(--bg-app-color);
+  border-color: var(--active-item);
+  color: var(--active-item);
 }
 
 .room-send-button:disabled {

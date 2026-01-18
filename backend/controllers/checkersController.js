@@ -527,6 +527,10 @@ function getGameSocket(gameId) {
   return games.get(gameId) || null;
 }
 
+function deleteGameSocket(gameId) {
+  return games.delete(gameId);
+}
+
 function listRoomsSocket() {
   const rooms = [];
 
@@ -675,5 +679,6 @@ module.exports = {
   setRematchReady,
   createRematchGameFromOld,
   listRoomsSocket,
+  deleteGameSocket,
 };
 
