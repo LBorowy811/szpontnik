@@ -90,6 +90,7 @@ const gameKey = computed(() => String(route.params.gameKey || ""));
 const gameLabel = computed(() => {
   if (gameKey.value === "checkers") return "Warcaby";
   if (gameKey.value === "tictactoe") return "Kółko i krzyżyk";
+  if (gameKey.value === "pictionary") return "Kalambury";
   return gameKey.value;
 });
 

@@ -10,12 +10,14 @@ const { Server } = require('socket.io');
 const checkersController = require('./controllers/checkersController');
 const tictactoeController = require('./controllers/tictactoeController');
 const diceController = require('./controllers/diceController');
+const pictionaryController = require('./controllers/pictionaryController');
 //import handlerow socketa
 const setupGlobalChatHandler = require('./socketHandlers/globalchatHandler');
 const setupGameRoomChatHandler = require('./socketHandlers/gameRoomChatHandler');
 const setupGameSocketHandlers = require('./socketHandlers/gamehandler');
 const setupRoomsHandler = require('./socketHandlers/roomHandler');
 const setupDisconnectHandler = require('./socketHandlers/disconnectHandler');
+const setupPictionaryHandler = require('./socketHandlers/pictionaryHandler');
 
 //import routingu
 const authRoutes = require('./routes/authRoutes');
@@ -31,6 +33,7 @@ const controllersByGameKey = {
   checkers: checkersController,
   tictactoe: tictactoeController,
   dice: diceController,
+  pictionary: pictionaryController,
 };
 
 // funkcja pomocnicza do konfiguracji cors (Z MAIN)
@@ -138,6 +141,9 @@ io.on('connection', (socket) => {
   for (const [gameKey, controller] of Object.entries(controllersByGameKey)) {
     setupGameSocketHandlers(socket, io, gameKey, controller, emitRoomsUpdated);
   }
+
+  // ===== SPECJALNE HANDLERY DLA PICTIONARY =====
+  setupPictionaryHandler(socket, io, pictionaryController, emitRoomsUpdated);
 
   // ===== UNIVERSAL ROOMS SOCKETS =====
   setupRoomsHandler(socket, io, controllersByGameKey, emitRoomsUpdated);

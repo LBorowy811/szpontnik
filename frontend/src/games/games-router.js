@@ -20,8 +20,13 @@ export default [
     component: () => import("./tictactoe/TicTacToeView.vue"),
   },
   {
-    path: "/games/dice",
+  path: "/games/dice",
     name: "Dice",
     component: () => import("./dice/DiceView.vue"),
+  },
+  {
+    path: "/games/pictionary",
+    name: "Pictionary",
+    component: () => import("./pictionary/PictionaryView.vue"),
   },
 ];
