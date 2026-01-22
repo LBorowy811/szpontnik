@@ -1,10 +1,6 @@
-const games = new Map();
+const gameUtils = require('../utils/gameUtils');
 
-function generateGameId() {
-  return (
-    Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  );
-}
+const games = new Map();
 
 function makeCheckersStartPieces() {
   const pieces = [];
@@ -136,7 +132,7 @@ function getCaptureMovesForPiece(piece, pieces) {
 function createGame(req, res) {
   const { player1, player2 } = req.body || {};
 
-  const gameId = generateGameId();
+  const gameId = gameUtils.generateGameId();
   const newGame = {
     id: gameId,
     players: {
@@ -151,7 +147,7 @@ function createGame(req, res) {
     status: "ongoing",
     drawReason: null,
     noProgressCount: 0,
-    score: { left: 0, right: 0 },
+    score: [0, 0],
   };
 
   games.set(gameId, newGame);
@@ -264,15 +260,19 @@ function finishGameIfNeeded(game) {
 
   if (whiteCount === 0) {
     game.status = "finished";
-    game.winnerSide = "right";
+    game.winnerIndex = 1; // czarne wygrywa
     game.finishReason = "noPieces";
+    if (!game.score) game.score = [0, 0];
+    game.score[1] += 1;
     return;
   }
-
+  
   if (blackCount === 0) {
     game.status = "finished";
-    game.winnerSide = "left";
+    game.winnerIndex = 0; // biale wygrywa
     game.finishReason = "noPieces";
+    if (!game.score) game.score = [0, 0];
+    game.score[0] += 1;
     return;
   }
 
@@ -280,8 +280,11 @@ function finishGameIfNeeded(game) {
   const turn = game.currentTurn;
   if (!hasAnyLegalMoveForColor(game, turn)) {
     game.status = "finished";
-    game.winnerSide = turn === "white" ? "right" : "left";
+    const currentPlayerIndex = game.players.findIndex(p => p.color === turn);
+    game.winnerIndex = currentPlayerIndex === 0 ? 1 : 0;
     game.finishReason = "noMoves";
+    if (!game.score) game.score = [0, 0];
+    game.score[game.winnerIndex] += 1;
     return;
   }
 
@@ -312,12 +315,7 @@ function makeMove(req, res) {
   if (!piece) return res.status(400).json({ error: "Nie znaleziono pionka o podanym ID" });
   if (!userId) return res.status(400).json({ error: "Brak userId (ruch nieautoryzowany)" });
 
-  const left = game.players?.left;
-  const right = game.players?.right;
-
-  let mover = null;
-  if (String(left?.userId) === String(userId)) mover = left;
-  if (String(right?.userId) === String(userId)) mover = right;
+  const mover = game.players?.find(p => String(p.userId) === String(userId));
 
   if (!mover) return res.status(403).json({ error: "Nie jesteś graczem w tej grze" });
   if (!mover.color) return res.status(400).json({ error: "Kolory nie są jeszcze przypisane (brak 2 graczy?)" });
@@ -380,8 +378,17 @@ if (game.mustContinueCapture) {
       return res.status(400).json({ error: "Nieprawidłowe bicie" });
     }
   } else {
+    if (hasAnyCaptureForColor(game, mover.color)) {
+      if (captureMoves.length === 0) {
+        return res.status(400).json({ 
+          error: "Musisz wykonać bicie - masz dostępne bicia innymi pionkami" 
+        });
+      }
+    }
     if (captureMoves.length > 0) {
-      return res.status(400).json({ error: "Masz bicie – zwykły ruch tym pionkiem jest niedozwolony" });
+      return res.status(400).json({ 
+        error: "Masz bicie – zwykły ruch tym pionkiem jest niedozwolony" 
+      });
     }
 
     const dx = to.x - piece.x;
@@ -422,16 +429,6 @@ if (game.mustContinueCapture) {
 
     const after = game.pieces.length;
 
-    if (after < before) {
-      if (!game.score) game.score = { left: 0, right: 0 };
-
-      const moverSide =
-        String(game.players?.left?.userId) === String(userId) ? "left"
-        : String(game.players?.right?.userId) === String(userId) ? "right"
-        : null;
-
-      if (moverSide) game.score[moverSide] += 1;
-    }
   }
 
   //awans
@@ -489,33 +486,30 @@ if (wantsCapture && hasFurtherCapture) {
   }
   finishGameIfNeeded(game);
 
-
+  console.log("[CHECKERS BACKEND] makeMove returning game with score:", game.score);
   return res.json({ success: true, game });
 }
 
 
 function createGameSocket({ player1, player2, roomName } = {}) {
-  const gameId = generateGameId();
+  const gameId = gameUtils.generateGameId();
 
   const newGame = {
     id: gameId,
     roomName: roomName || null,
-
-    players: {
-      left: player1 ? { username: player1 } : null,
-      right: player2 ? { username: player2 } : null,
-    },
+    players: [], // tablica graczy, zamiast left/rigt
+    maxPlayers: 2,
+    minPlayers: 2,
     pieces: makeCheckersStartPieces(),
     currentTurn: "white",
     moves: [],
     createdAt: new Date().toISOString(),
-
     status: "ongoing",
     drawReason: null,
     noProgressCount: 0,
-    score: { left: 0, right: 0 },
+    score: [0, 0],
     mustContinueCapture: null,
-    rematchReady: { left: false, right: false },
+    rematchReady: {},
   };
 
   games.set(gameId, newGame);
@@ -524,131 +518,59 @@ function createGameSocket({ player1, player2, roomName } = {}) {
 
 
 function getGameSocket(gameId) {
-  return games.get(gameId) || null;
+  return gameUtils.getGameSocket(games, gameId);
 }
 
 function deleteGameSocket(gameId) {
-  return games.delete(gameId);
+  return gameUtils.deleteGameSocket(games, gameId);
 }
 
 function listRoomsSocket() {
-  const rooms = [];
-
-  for (const [id, game] of games.entries()) {
-    if (!game || game.status !== "ongoing") continue;
-
-    const left = game.players?.left;
-    const right = game.players?.right;
-
-    const playersCount = (left ? 1 : 0) + (right ? 1 : 0);
-
-    rooms.push({
-      id,
-      roomName: game.roomName || null,
-      status: playersCount < 2 ? "waiting" : "playing",
-      playersCount,
-      players: {
-        left: left ? { username: left.username, userId: left.userId } : null,
-        right: right ? { username: right.username, userId: right.userId } : null,
-      },
-      createdAt: game.createdAt,
-    });
-  }
-
-  rooms.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-
-  return rooms;
+  return gameUtils.listRoomsSocket(games);
 }
 
 
 function assignColorsIfReady(game) {
   if (!game) return;
 
-  const left = game.players?.left;
-  const right = game.players?.right;
-  if (!left || !right) return;
+  if (!Array.isArray(game.players) || game.players.length < 2) return;
 
-  //blokuj ponowne losowanie
-  if (left.color && right.color) return;
-  const leftIsWhite = Math.random() < 0.5;
+  const player0 = game.players[0];
+  const player1 = game.players[1];
+  
+  if (!player0 || !player1) return;
 
-  game.players.left.color = leftIsWhite ? "white" : "black";
-  game.players.right.color = leftIsWhite ? "black" : "white";
+  // Blokuj ponowne losowanie
+  if (player0.color && player1.color) return;
+  
+  const player0IsWhite = Math.random() < 0.5;
 
-  //biale zaczynaja
+  player0.color = player0IsWhite ? "white" : "black";
+  player1.color = player0IsWhite ? "black" : "white";
+
+  // Białe zaczynają
   game.currentTurn = "white";
 }
 
 
-function joinGameSocket({ gameId, side, username, userId, socketId }) {
-  const game = games.get(gameId);
-  if (!game) return { ok: false, error: "Gra o podanym ID nie istnieje" };
-
-  if (!side) return { ok: true, game };
-
-  if (side !== "left" && side !== "right") {
-    return { ok: false, error: "Nieprawidłowa strona (left/right)" };
-  }
-
-  if (!userId) return { ok: false, error: "Brak userId" };
-  if (!username) username = "Anonim";
-
-  const current = game.players?.[side];
-
-  if (current && current.socketId && current.socketId !== socketId) {
-    if (current.userId === userId) {
-      game.players[side] = { ...current, username, userId, socketId };
-      assignColorsIfReady(game);
-      return { ok: true, game };
-    }
-    return { ok: false, error: "To miejsce jest już zajęte" };
-  }
-
-  game.players[side] = { username, userId, socketId };
-  assignColorsIfReady(game);
-
-  return { ok: true, game };
+function joinGameSocket({ gameId, username, userId, socketId }) {
+  return gameUtils.joinGameSocketBase(games, { gameId, username, userId, socketId }, assignColorsIfReady);
 }
 
-function getSideByUserId(game, userId) {
-  if (!game?.players) return null;
-  if (String(game.players?.left?.userId) === String(userId)) return "left";
-  if (String(game.players?.right?.userId) === String(userId)) return "right";
-  return null;
-}
 
 function setRematchReady(gameId, userId) {
-  const game = games.get(gameId);
-  if (!game) return { ok: false, error: "Gra nie istnieje" };
-
-  //rematch tylko jesli gra sie zakonczyla
-  if (game.status === "ongoing") {
-    return { ok: false, error: "Gra jeszcze trwa" };
-  }
-
-  const side = getSideByUserId(game, userId);
-  if (!side) return { ok: false, error: "Nie jesteś graczem w tej grze" };
-
-  if (!game.rematchReady) game.rematchReady = { left: false, right: false };
-  game.rematchReady[side] = true;
-
-  const count = (game.rematchReady.left ? 1 : 0) + (game.rematchReady.right ? 1 : 0);
-  const bothReady = count === 2;
-
-  return { ok: true, game, count, bothReady };
+  return gameUtils.setRematchReady(games, gameId, userId);
 }
 
 function createRematchGameFromOld(oldGame) {
-  const gameId = generateGameId();
-
-  const left = oldGame.players?.left ? { ...oldGame.players.left } : null;
-  const right = oldGame.players?.right ? { ...oldGame.players.right } : null;
-
+  const gameId = gameUtils.generateGameId();
+  const lastScore = [...(oldGame.score || [0, 0])];
   const newGame = {
     id: gameId,
     roomName: oldGame.roomName || null,
-
-    players: { left, right },
+    players: oldGame.players ? oldGame.players.map(p => ({ ...p })) : [],
+    maxPlayers: oldGame.maxPlayers || 2,
+    minPlayers: oldGame.minPlayers || 2,
     pieces: makeCheckersStartPieces(),
     currentTurn: "white",
     moves: [],
@@ -656,17 +578,15 @@ function createRematchGameFromOld(oldGame) {
     status: "ongoing",
     drawReason: null,
     noProgressCount: 0,
-    score: { left: 0, right: 0 },
+    score: lastScore,
     mustContinueCapture: null,
-    rematchReady: { left: false, right: false },
+    rematchReady: {},
   };
 
   assignColorsIfReady(newGame);
-
   games.set(gameId, newGame);
   return newGame;
 }
-
 
 
 module.exports = {
@@ -681,4 +601,3 @@ module.exports = {
   listRoomsSocket,
   deleteGameSocket,
 };
-

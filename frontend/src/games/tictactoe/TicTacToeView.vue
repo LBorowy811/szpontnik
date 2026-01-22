@@ -22,22 +22,22 @@
         <div id="Player1" class="player-slot">
           <div class="slot-photo"></div>
           <div class="slot-meta">
-            <div class="slot-name">{{ leftLabel }}</div>
-            <button v-if="!hasLeft" class="slot-join" type="button" @click="handleJoin({ side: 'left' })">
+            <div class="slot-name">{{ player0Label }}</div>
+            <button v-if="!hasPlayer0" class="slot-join" type="button" @click="handleJoin({ playerIndex: 0 })">
               Dołącz
             </button>
           </div>
         </div>
 
         <div class="score">
-          {{ score.left }} : {{ score.right }}
+          {{ score0 }} : {{ score1 }}
         </div>
 
         <div id="Player2" class="player-slot">
           <div class="slot-photo"></div>
           <div class="slot-meta">
-            <div class="slot-name">{{ rightLabel }}</div>
-            <button v-if="!hasRight" class="slot-join" type="button" @click="handleJoin({ side: 'right' })">
+            <div class="slot-name">{{ player1Label }}</div>
+            <button v-if="!hasPlayer1" class="slot-join" type="button" @click="handleJoin({ playerIndex: 1 })">
               Dołącz
             </button>
           </div>
@@ -82,7 +82,7 @@
           </button>
           
           <div class="rematch-box">
-            <button class="end-btn primary" type="button" @click="requestRematch" :disabled="!mySide" style="opacity: 0.95;">
+            <button class="end-btn primary" type="button" @click="requestRematch" :disabled="myPlayerIndex === null" style="opacity: 0.95;">
               Zagraj ponownie
             </button>
             <div class="rematch-count">{{ state.rematchCount }}/2</div>
@@ -103,13 +103,13 @@ import socket from "@/services/socket";
 const route = useRoute();
 const router = useRouter();
 
-const score = reactive({ left: 0, right: 0 });
+const score = ref([0, 0]);
 const moves = ref([]);
 const roomName = ref("");
 
 const state = reactive({
   gameId: null,
-  players: { left: null, right: null },
+  players: [null, null],
   board: [
     [null, null, null],
     [null, null, null],
@@ -118,8 +118,12 @@ const state = reactive({
   currentTurn: "X",
   status: "ongoing",
   winner: null,
+  winnerIndex: null,
   rematchCount: 0,
 });
+
+const score0 = computed(() => score.value[0] ?? 0);
+const score1 = computed(() => score.value[1] ?? 0);
 
 function normalizePlayer(p) {
   if (!p) return null;
@@ -135,10 +139,11 @@ function applyGame(game) {
   state.gameId = game?.id ?? null;
   roomName.value = game?.roomName || "";
   
-  state.players = {
-    left: normalizePlayer(game?.players?.left),
-    right: normalizePlayer(game?.players?.right),
-  };
+  const playersArray = Array.isArray(game?.players) ? game.players : [];
+  state.players = [
+    normalizePlayer(playersArray[0]),
+    normalizePlayer(playersArray[1]),
+  ];
   
   state.board = game?.board || [
     [null, null, null],
@@ -147,13 +152,21 @@ function applyGame(game) {
   ];
   state.currentTurn = game?.currentTurn || "X";
   moves.value = game?.moves ?? [];
-  score.left = game?.score?.left ?? 0;
-  score.right = game?.score?.right ?? 0;
+  
+  if (Array.isArray(game?.score)) {
+    score.value = [game.score[0] ?? 0, game.score[1] ?? 0];
+  } else if (game?.score) {
+    score.value = [game.score.left ?? 0, game.score.right ?? 0];
+  } else {
+    score.value = [0, 0];
+  }
+  
   state.status = game?.status || "ongoing";
   state.winner = game?.winner ?? null;
+  state.winnerIndex = game?.winnerIndex ?? null;
   
   const ready = game?.rematchReady;
-  state.rematchCount = ready ? (ready.left ? 1 : 0) + (ready.right ? 1 : 0) : 0;
+  state.rematchCount = ready ? Object.keys(ready).length : 0;
 }
 
 function normalizePlayerForLabel(p) {
@@ -162,14 +175,14 @@ function normalizePlayerForLabel(p) {
   return { exists: true, label: label || "wolne miejsce" };
 }
 
-const leftNorm = computed(() => normalizePlayerForLabel(state.players?.left));
-const rightNorm = computed(() => normalizePlayerForLabel(state.players?.right));
+const player0Norm = computed(() => normalizePlayerForLabel(state.players?.[0]));
+const player1Norm = computed(() => normalizePlayerForLabel(state.players?.[1]));
 
-const hasLeft = computed(() => leftNorm.value.exists);
-const hasRight = computed(() => rightNorm.value.exists);
+const hasPlayer0 = computed(() => player0Norm.value.exists);
+const hasPlayer1 = computed(() => player1Norm.value.exists);
 
-const leftLabel = computed(() => leftNorm.value.label);
-const rightLabel = computed(() => rightNorm.value.label);
+const player0Label = computed(() => player0Norm.value.label);
+const player1Label = computed(() => player1Norm.value.label);
 
 function formatTime(time) {
   if (!time) return "";
@@ -230,9 +243,9 @@ function socketWatchGame(gameId) {
   });
 }
 
-function socketJoinGame({ gameId, side, username, userId }) {
+function socketJoinGame({ gameId, username, userId }) {
   return new Promise((resolve, reject) => {
-    socket.emit("tictactoe:joinGame", { gameId, side, username, userId }, (resp) => {
+    socket.emit("tictactoe:joinGame", { gameId, username, userId }, (resp) => {
       if (!resp?.ok) return reject(new Error(resp?.error || "joinGame failed"));
       resolve(resp.game);
     });
@@ -260,18 +273,24 @@ function getLoggedUserOrNull() {
 
 const myUser = computed(() => getLoggedUserOrNull());
 
-const mySide = computed(() => {
+const myPlayerIndex = computed(() => {
   const me = myUser.value;
   if (!me?.id) return null;
-  if (state.players?.left?.userId === me.id) return "left";
-  if (state.players?.right?.userId === me.id) return "right";
+  
+  if (!Array.isArray(state.players)) return null;
+  
+  for (let i = 0; i < state.players.length; i++) {
+    if (state.players[i]?.userId === me.id) {
+      return i;
+    }
+  }
   return null;
 });
 
 const mySymbol = computed(() => {
-  if (mySide.value === "left") return state.players?.left?.symbol || null;
-  if (mySide.value === "right") return state.players?.right?.symbol || null;
-  return null;
+  const index = myPlayerIndex.value;
+  if (index === null) return null;
+  return state.players[index]?.symbol || null;
 });
 
 const isMyTurn = computed(() => {
@@ -291,11 +310,9 @@ const endMessage = computed(() => {
   }
   
   if (state.status === "finished") {
-    if (state.winnerSide === "left") {
-      return `Wygrał ${state.players?.left?.username || "gracz"}`;
-    }
-    if (state.winnerSide === "right") {
-      return `Wygrał ${state.players?.right?.username || "gracz"}`;
+    const winnerIndex = state.winnerIndex;
+    if (winnerIndex !== null && winnerIndex >= 0 && winnerIndex < state.players.length) {
+      return `Wygrał ${state.players[winnerIndex]?.username || "gracz"}`;
     }
     return "Gra zakończona.";
   }
@@ -303,7 +320,7 @@ const endMessage = computed(() => {
   return "";
 });
 
-async function handleJoin({ side, gameId }) {
+async function handleJoin({ playerIndex, gameId }) {
   const user = getLoggedUserOrNull();
   if (!user?.id || !user?.username) {
     alert("Musisz być zalogowany, żeby dołączyć do gry.");
@@ -321,7 +338,6 @@ async function handleJoin({ side, gameId }) {
   try {
     const updatedGame = await socketJoinGame({
       gameId: realGameId,
-      side,
       username,
       userId,
     });
@@ -363,15 +379,12 @@ onMounted(async () => {
       applyGame(game);
       
       if (me?.id) {
-        let side = null;
+        const playersArray = Array.isArray(game?.players) ? game.players : [];
+        const myIndex = playersArray.findIndex(p => String(p?.userId) === String(me.id));
         
-        if (game?.players?.left?.userId === me.id) side = "left";
-        if (game?.players?.right?.userId === me.id) side = "right";
-        
-        if (side) {
+        if (myIndex !== -1) {
           const updatedGame = await socketJoinGame({
             gameId: gameIdFromUrl,
-            side,
             username: me.username,
             userId: me.id,
           });

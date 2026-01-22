@@ -14,24 +14,24 @@
       <div id="Player1" class="player-slot">
         <div class="slot-photo"></div>
         <div class="slot-meta">
-          <div class="slot-name">{{ leftLabel }}</div>
+          <div class="slot-name">{{ player0Label }}</div>
 
-          <button v-if="!hasLeft" class="slot-join" type="button" @click="onJoin('left')">
+          <button v-if="!hasPlayer0" class="slot-join" type="button" @click="onJoin(0)">
             Dolacz
           </button>
         </div>
       </div>
 
       <div class="score">
-        {{ score.left }} : {{ score.right }}
+        {{ score0 }} : {{ score1}}
       </div>
 
       <div id="Player2" class="player-slot">
         <div class="slot-photo"></div>
         <div class="slot-meta">
-          <div class="slot-name">{{ rightLabel }}</div>
+          <div class="slot-name">{{ player1Label }}</div>
 
-          <button v-if="!hasRight" class="slot-join" type="button" @click="onJoin('right')">
+          <button v-if="!hasPlayer1" class="slot-join" type="button" @click="onJoin(1)">
             Dolacz
           </button>
         </div>
@@ -76,7 +76,7 @@
             </template>
 
             <template v-else>
-              <tr v-for="(m, i) in moves" :key="m.id ?? i">
+              <tr v-for="(m, i) in moves" :key="m.id ?? (moves.length + i + 1)">
                 <td>{{ m.id ?? (moves.length + i + 1) }}</td>
                 <td>{{ formatPlayer(m) }}</td>
                 <td>{{ formatCoords(m.from) }}</td>
@@ -96,17 +96,30 @@
 import { computed } from "vue";
 
 const props = defineProps({
-  score: { type: Object, required: true },
+  score: { type: Array, default: () => [0, 0] },
   moves: { type: Array, required: true },
   gameId: { type: [String, Number], required: false },
-  players: { type: Object, default: () => ({ left: null, right: null }) },
+  players: { type: Array, default: () => [null, null] },
 });
 
 const emit = defineEmits(["join"]);
 
-function onJoin(side) {
-  emit("join", { side, gameId: props.gameId || null });
+function onJoin(playerIndex) {
+  emit("join", { playerIndex, gameId: props.gameId || null });
 }
+const score0 = computed(() => {
+  const arr = props.score;
+  console.log("[GameLayout] score0 computed, props.score:", arr, "type:", typeof arr, "isArray:", Array.isArray(arr));
+  if (!Array.isArray(arr)) return 0;
+  return arr[0] ?? 0;
+});
+
+const score1 = computed(() => {
+  const arr = props.score;
+  console.log("[GameLayout] score1 computed, props.score:", arr);
+  if (!Array.isArray(arr)) return 0;
+  return arr[1] ?? 0;
+});
 
 function normalizePlayer(p) {
   if (!p) return { exists: false, label: "wolne miejsce" };
@@ -120,14 +133,14 @@ function normalizePlayer(p) {
   return { exists: true, label: label || "wolne miejsce" };
 }
 
-const leftNorm = computed(() => normalizePlayer(props.players?.left));
-const rightNorm = computed(() => normalizePlayer(props.players?.right));
+const player0Norm = computed(() => normalizePlayer(props.players?.[0]));
+const player1Norm = computed(() => normalizePlayer(props.players?.[1]));
 
-const hasLeft = computed(() => leftNorm.value.exists);
-const hasRight = computed(() => rightNorm.value.exists);
+const hasPlayer0 = computed(() => player0Norm.value.exists);
+const hasPlayer1 = computed(() => player1Norm.value.exists);
 
-const leftLabel = computed(() => leftNorm.value.label);
-const rightLabel = computed(() => rightNorm.value.label);
+const player0Label = computed(() => player0Norm.value.label);
+const player1Label = computed(() => player1Norm.value.label);
 
 const isScrable = computed(() => {
   const id = (props.gameId ?? "").toString().toLowerCase();

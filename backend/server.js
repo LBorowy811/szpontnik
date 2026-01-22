@@ -6,25 +6,28 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+//import kontrolerow do gier
 const checkersController = require('./controllers/checkersController');
 const tictactoeController = require('./controllers/tictactoeController');
+//import handlerow socketa
 const setupGlobalChatHandler = require('./socketHandlers/globalchatHandler');
 const setupGameRoomChatHandler = require('./socketHandlers/gameRoomChatHandler');
+const setupGameSocketHandlers = require('./socketHandlers/gamehandler');
+const setupRoomsHandler = require('./socketHandlers/roomHandler');
+const setupDisconnectHandler = require('./socketHandlers/disconnectHandler');
+
+//import routingu
+const authRoutes = require('./routes/authRoutes');
+const checkersRoutes = require('./routes/checkersRoutes');
 
 const app = express();
 const server = http.createServer(app);
 
 const PORT = 3000;
 
-// import routingu
-const authRoutes = require('./routes/authRoutes');
-const checkersRoutes = require('./routes/checkersRoutes');
-
 // kontrolery pod gry (uniwersalne pokoje)
 const controllersByGameKey = {
   checkers: checkersController,
-  // chess: chessController,
-  // literaki: literakiController,
   tictactoe: tictactoeController,
 };
 
@@ -129,344 +132,18 @@ io.on('connection', (socket) => {
   // czat w pokojach gier (uniwersalny)
   setupGameRoomChatHandler(socket, io);
 
-  // ===== CHECKERS SOCKETS (TWOJE) =====
-  socket.on('checkers:createGame', (payload, cb) => {
-    try {
-      const game = checkersController.createGameSocket(payload);
-      const room = `checkers:${game.id}`;
+  // ===== UNIWERSALNE HANDLERY DLA WSZYSTKICH GIER =====
+  for (const [gameKey, controller] of Object.entries(controllersByGameKey)) {
+    setupGameSocketHandlers(socket, io, gameKey, controller, emitRoomsUpdated);
+  }
 
-      socket.join(room);
-      io.to(room).emit('checkers:state', game);
+  // ===== UNIVERSAL ROOMS SOCKETS =====
+  setupRoomsHandler(socket, io, controllersByGameKey, emitRoomsUpdated);
 
-      emitRoomsUpdated('checkers');
+  // obsługa rozłączenia
+  setupDisconnectHandler(socket, io, controllersByGameKey, emitRoomsUpdated);
 
-      cb?.({ ok: true, game });
-    } catch (e) {
-      cb?.({ ok: false, error: e?.message || 'createGame socket error' });
-    }
-  });
-
-  socket.on('checkers:watchGame', ({ gameId }, cb) => {
-    const game = checkersController.getGameSocket(gameId);
-    if (!game) return cb?.({ ok: false, error: 'Gra nie istnieje' });
-
-    const room = `checkers:${gameId}`;
-    socket.join(room);
-
-    io.to(room).emit('checkers:state', game);
-    cb?.({ ok: true, game });
-  });
-
-  socket.on('checkers:joinGame', ({ gameId, side, username, userId }, cb) => {
-    const result = checkersController.joinGameSocket({
-      gameId,
-      side,
-      username,
-      userId,
-      socketId: socket.id,
-    });
-
-    if (!result.ok) return cb?.(result);
-
-    const room = `checkers:${gameId}`;
-    socket.join(room);
-
-    io.to(room).emit('checkers:state', result.game);
-    emitRoomsUpdated('checkers');
-
-    cb?.({ ok: true, game: result.game });
-  });
-
-  socket.on('checkers:rematchReady', ({ gameId, userId }, cb) => {
-    try {
-      if (!gameId) return cb?.({ ok: false, error: 'Brak gameId' });
-      if (!userId) return cb?.({ ok: false, error: 'Brak userId' });
-
-      const result = checkersController.setRematchReady(gameId, userId);
-      if (!result.ok) return cb?.(result);
-
-      const roomOld = `checkers:${gameId}`;
-
-      io.to(roomOld).emit('checkers:rematchStatus', {
-        gameId,
-        count: result.count,
-        ready: result.game.rematchReady,
-      });
-
-      if (result.bothReady) {
-        const oldGame = checkersController.getGameSocket(gameId);
-        const newGame = checkersController.createRematchGameFromOld(oldGame);
-        const roomNew = `checkers:${newGame.id}`;
-
-        const leftSockId = newGame.players?.left?.socketId;
-        const rightSockId = newGame.players?.right?.socketId;
-
-        if (leftSockId && io.sockets.sockets.get(leftSockId)) {
-          const s = io.sockets.sockets.get(leftSockId);
-          s.leave(roomOld);
-          s.join(roomNew);
-        }
-        if (rightSockId && io.sockets.sockets.get(rightSockId)) {
-          const s = io.sockets.sockets.get(rightSockId);
-          s.leave(roomOld);
-          s.join(roomNew);
-        }
-
-        io.to(roomNew).emit('checkers:state', newGame);
-        io.to(roomNew).emit('checkers:rematchStarted', { newGameId: newGame.id });
-
-        oldGame.rematchReady = { left: false, right: false };
-
-        // po rematchu: stara gra nie jest ongoing -> update listy pokoi
-        emitRoomsUpdated('checkers');
-      }
-
-      cb?.({ ok: true, count: result.count });
-    } catch (e) {
-      cb?.({ ok: false, error: e?.message || 'rematchReady error' });
-    }
-  });
-
-  socket.on('checkers:move', ({ gameId, ...moveData }, callback) => {
-    if (!gameId) return callback?.({ ok: false, error: 'Brak gameId' });
-
-    const req = { params: { id: gameId }, body: { ...moveData } };
-    const res = {
-      status: (code) => {
-        res._status = code;
-        return res;
-      },
-      json: (data) => {
-        if (res._status && res._status >= 400) {
-          return callback?.({ ok: false, error: data?.error || 'Błąd ruchu' });
-        }
-        callback?.({ ok: true, data });
-
-        if (data?.game) io.to(`checkers:${gameId}`).emit('checkers:state', data.game);
-
-        emitRoomsUpdated('checkers');
-      },
-    };
-
-    checkersController.makeMove(req, res);
-  });
-
-  socket.on('tictactoe:createGame', (payload, cb) => {
-    try {
-      const game = tictactoeController.createGameSocket(payload);
-      const room = `tictactoe:${game.id}`;
-      
-      socket.join(room);
-      io.to(room).emit('tictactoe:state', game);
-
-      emitRoomsUpdated('tictactoe');
-
-      cb?.({ ok: true, game });
-    } catch (e) {
-      cb?.({ ok: false, error: e?.message || 'createGame socket error' });
-    }
-  });
-
-  socket.on('tictactoe:watchGame', ({ gameId }, cb) => {
-    const game = tictactoeController.getGameSocket(gameId);
-    if (!game) return cb?.({ ok: false, error: 'Gra nie istnieje' });
-
-    const room = `tictactoe:${gameId}`;
-    socket.join(room);
-
-    io.to(room).emit('tictactoe:state', game);
-    cb?.({ ok: true, game });
-  });
-
-  socket.on('tictactoe:joinGame', ({ gameId, side, username, userId }, cb) => {
-    const result = tictactoeController.joinGameSocket({
-      gameId,
-      side,
-      username,
-      userId,
-      socketId: socket.id,
-    });
-
-    if (!result.ok) return cb?.(result);
-
-    const room = `tictactoe:${gameId}`;
-    socket.join(room);
-
-    io.to(room).emit('tictactoe:state', result.game);
-    emitRoomsUpdated('tictactoe');
-
-    cb?.({ ok: true, game: result.game });
-  });
-
-  socket.on('tictactoe:rematchReady', ({ gameId, userId }, cb) => {
-    try {
-      if (!gameId) return cb?.({ ok: false, error: 'Brak gameId' });
-      if (!userId) return cb?.({ ok: false, error: 'Brak userId' });
-
-      const result = tictactoeController.setRematchReady(gameId, userId);
-      if (!result.ok) return cb?.(result);
-
-      const roomOld = `tictactoe:${gameId}`;
-
-      io.to(roomOld).emit('tictactoe:rematchStatus', {
-        gameId,
-        count: result.count,
-        ready: result.game.rematchReady,
-      });
-
-      if (result.bothReady) {
-        const oldGame = tictactoeController.getGameSocket(gameId);
-        const newGame = tictactoeController.createRematchGameFromOld(oldGame);
-        const roomNew = `tictactoe:${newGame.id}`;
-
-        const leftSockId = newGame.players?.left?.socketId;
-        const rightSockId = newGame.players?.right?.socketId;
-
-        if (leftSockId && io.sockets.sockets.get(leftSockId)) {
-          const s = io.sockets.sockets.get(leftSockId);
-          s.leave(roomOld);
-          s.join(roomNew);
-        }
-        if (rightSockId && io.sockets.sockets.get(rightSockId)) {
-          const s = io.sockets.sockets.get(rightSockId);
-          s.leave(roomOld);
-          s.join(roomNew);
-        }
-
-        io.to(roomNew).emit('tictactoe:state', newGame);
-        io.to(roomNew).emit('tictactoe:rematchStarted', {newGameId: newGame.Id});
-
-        oldGame.rematchReady = { left: false, right: false };
-        emitRoomsUpdated('tictactoe');
-      }
-
-      cb?.({ ok: true, count: result.count });
-    } catch (e) {
-      cb?.({ ok: false, error: e?.message || 'rematchReady error' });
-    }
-  });
-
-  socket.on('tictactoe:move', ({ gameId, ...moveData }, callback) => {
-    if (!gameId) return callback?.({ ok: false, error: 'Brak gameId' });
-
-    const req = { params: { id: gameId }, body: { ...moveData } };
-    const res = {
-      status: (code) => {
-        res._status = code;
-        return res;
-      },
-      json: (data) => {
-        if (res.status && res._status >= 400) {
-          return callback?.({ ok: false, error: data?.error || 'Błąd ruchu' });
-        }
-        callback?.({ ok: true, data });
-
-        if (data?.game) io.to(`tictactoe:${gameId}`).emit('tictactoe:state', data.game);
-
-        emitRoomsUpdated('tictactoe');
-      },
-    };
-
-    tictactoeController.makeMove(req, res);
-  });
-
-  // ===== UNIVERSAL ROOMS SOCKETS (TWOJE) =====
-  socket.on('rooms:list', ({ gameKey }, cb) => {
-    try {
-      if (!gameKey) return cb?.({ ok: false, error: 'Brak gameKey' });
-
-      const controller = controllersByGameKey[gameKey];
-      if (!controller || typeof controller.listRoomsSocket !== 'function') {
-        return cb?.({ ok: true, rooms: [] });
-      }
-
-      const rooms = controller.listRoomsSocket();
-      cb?.({ ok: true, rooms });
-    } catch (e) {
-      cb?.({ ok: false, error: e?.message || 'rooms:list error' });
-    }
-  });
-
-  socket.on('rooms:create', ({ gameKey, roomName }, cb) => {
-    try {
-      if (!gameKey) return cb?.({ ok: false, error: 'Brak gameKey' });
-
-      const controller = controllersByGameKey[gameKey];
-      if (!controller || typeof controller.createGameSocket !== 'function') {
-        return cb?.({ ok: false, error: `Gra ${gameKey} nie obsługuje tworzenia pokoju` });
-      }
-
-      const game = controller.createGameSocket({ roomName: roomName || null });
-
-      const room = `${gameKey}:${game.id}`;
-      socket.join(room);
-
-      io.to(room).emit(`${gameKey}:state`, game);
-      emitRoomsUpdated(gameKey);
-
-      cb?.({ ok: true, roomId: game.id });
-    } catch (e) {
-      cb?.({ ok: false, error: e?.message || 'rooms:create error' });
-    }
-  });
-
-  //obluga rozlaczenia (Z MAIN)
-  socket.on('disconnect', () => {
-    console.log('Użytkownik opuścił czat:', socket.user?.username || 'Nieznany', 'ID:', socket.id);
-    
-    if (socket.user?.userId) {
-      const userId = socket.user.userId;
-      
-      // Usuń gracza ze wszystkich gier
-      for (const [gameKey, controller] of Object.entries(controllersByGameKey)) {
-        if (!controller || typeof controller.getGameSocket !== 'function' || typeof controller.listRoomsSocket !== 'function') continue;
-        
-        const rooms = controller.listRoomsSocket();
-        
-        for (const room of rooms) {
-          const game = controller.getGameSocket(room.id);
-          if (!game) continue;
-          
-          const left = game.players?.left;
-          const right = game.players?.right;
-          
-          let updated = false;
-          
-          if (left && String(left.userId) === String(userId)) {
-            game.players.left = null;
-            updated = true;
-          }
-          
-          if (right && String(right.userId) === String(userId)) {
-            game.players.right = null;
-            updated = true;
-          }
-          
-          if (updated) {
-            const roomName = `${gameKey}:${game.id}`;
-            
-            // Sprawdź czy pokój jest pusty (nie ma żadnych graczy)
-            const hasNoPlayers = !game.players?.left && !game.players?.right;
-            
-            if (hasNoPlayers && controller.deleteGameSocket) {
-              // Usuń pusty pokój
-              controller.deleteGameSocket(game.id);
-              io.to(roomName).emit(`${gameKey}:state`, null);
-            } else {
-              // Wyślij zaktualizowany stan gry
-              io.to(roomName).emit(`${gameKey}:state`, game);
-            }
-            
-            emitRoomsUpdated(gameKey);
-          }
-        }
-      }
-    }
-    
-    io.emit('online-count', io.engine.clientsCount);
-  });
-
-  //osbluga bledow polaczenia (Z MAIN)
+  // obsługa błędów połączenia (Z MAIN)
   socket.on('error', (err) => {
     console.error('Błąd Socket.IO:', err);
   });

@@ -1,10 +1,6 @@
-const games = new Map();
+const gameUtils = require('../utils/gameUtils');
 
-function generateGameId() {
-    return (
-        Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-    )
-}
+const games = new Map();
 
 function createEmptyBoard() {
     return [
@@ -50,122 +46,62 @@ function isBoardFull(board) {
 }
 
 function createGameSocket({ roomName } = {}) {
-    const gameId = generateGameId();
-
+    const gameId = gameUtils.generateGameId();
+  
     const newGame = {
-        id: gameId,
-        roomName: roomName || null,
-        players: {
-            left: null,
-            right: null,
-        },
-        board: createEmptyBoard(),
-        currentTurn: "X",
-        moves: [],
-        createdAt: new Date().toISOString(),
-        status: "ongoing",
-        winner: null,
-        rematchReady: { left: false, right: false },
+      id: gameId,
+      roomName: roomName || null,
+      players: [], // gracze jako tablica nie left/right
+      maxPlayers: 2,
+      minPlayers: 2,
+      board: createEmptyBoard(),
+      currentTurn: "X",
+      moves: [],
+      score: [0, 0],
+      createdAt: new Date().toISOString(),
+      status: "ongoing",
+      winner: null,
+      rematchReady: {},
     };
-
+  
     games.set(gameId, newGame);
     return newGame;
-}
+  }
 
 function getGameSocket(gameId) {
-    return games.get(gameId) || null;
+    return gameUtils.getGameSocket(games, gameId);
 }
 
 function deleteGameSocket(gameId) {
-    return games.delete(gameId);
+    return gameUtils.deleteGameSocket(games, gameId);
 }
 
 function listRoomsSocket() {
-    const rooms = [];
-
-    for (const [id, game] of games.entries()) {
-        if (!game || game.status !== "ongoing") continue;
-
-        const left = game.players?.left;
-        const right = game.players?.right;
-        const playersCount = (left ? 1 : 0) + (right ? 1 : 0)
-
-        rooms.push({
-            id,
-            roomName: game.roomName || null,
-            status: playersCount < 2 ? "waiting" : "playing",
-            playersCount,
-            players: {
-                left: left ? { username: left.username, userId: left.userId } : null,
-                right: right ? { username: right.username, userId: right.userId } : null,
-            },
-            createdAt: game.createdAt,
-        });
-    }
-
-    rooms.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-    return rooms;
+    return gameUtils.listRoomsSocket(games);
 }
 
 function assignSymbolsIfReady(game) {
     if (!game) return;
-
-    const left = game.players?.left;
-    const right = game.players?.right;
-    if (!left || !right) return;
-
-    if (left.symbol && right.symbol) return;
-
-    const leftIsX = Math.random() < 0.5;
-    game.players.left.symbol = leftIsX ? "X" : "O";
-    game.players.right.symbol = leftIsX ? "O" : "X";
-
+  
+    if (!Array.isArray(game.players) || game.players.length < 2) return;
+  
+    const player0 = game.players[0];
+    const player1 = game.players[1];
+    if (!player0 || !player1) return;
+  
+    if (player0.symbol && player1.symbol) return;
+    
+    const randomPlayerGetsX = Math.random() < 0.5 ? player0 : player1;
+    const otherPlayer = randomPlayerGetsX === player0 ? player1 : player0;
+  
+    randomPlayerGetsX.symbol = "X";
+    otherPlayer.symbol = "O";
+  
     game.currentTurn = "X";
-}
+  }
 
-function joinGameSocket({ gameId, side, username, userId, socketId }) {
-    const game = games.get(gameId);
-    if (!game) return { ok: false, error: "Gra o podanym ID nie istnieje" };
-    if (!side) return { ok: true, game };
-    if (side !== "left" && side !== "right") {
-        return { ok: false, error: "Nieprawidłowa strona (left/right)" };
-    }
-    if (!userId) return { ok: false, error: "Brak userId" };
-    if (!username) username = "Anonim";
-
-    const leftUserId = game.players?.left?.userId ? String(game.players.left.userId) : null;
-    const rightUserId = game.players?.right?.userId ? String(game.players.right.userId) : null;
-    const currentUserId = String(userId);
-
-    if (leftUserId === currentUserId) {
-        if (side === "left") {
-            game.players.left = { ...game.players.left, username, userId, socketId };
-            assignSymbolsIfReady(game);
-            return { ok: true, game };
-        } else {
-            return { ok: false, error: "Już jesteś w grze jako lewy gracz" };
-        }
-    }
-
-    if (rightUserId === currentUserId) {
-        if (side === "right") {
-            game.players.right = { ...game.players.right, username, userId, socketId };
-            assignSymbolsIfReady(game);
-            return { ok: true, game };
-        } else {
-            return { ok: false, error: "Już jesteś w grze jako prawy gracz" };
-        }
-    }
-
-    const current = game.players?.[side];
-    if (current && current.userId) {
-        return { ok: false, error: "To miejsce jest już zajęte" };
-    }
-
-    game.players[side] = { username, userId, socketId };
-    assignSymbolsIfReady(game);
-
-    return { ok: true, game };
+function joinGameSocket({ gameId, username, userId, socketId }) {
+    return gameUtils.joinGameSocketBase(games, { gameId, username, userId, socketId }, assignSymbolsIfReady);
 }
 
 function makeMove(req, res) {
@@ -197,12 +133,7 @@ function makeMove(req, res) {
 
     if (!userId) return res.status(400).json({ error: "Brak userId" });
 
-    const left = game.players?.left;
-    const right = game.players?.right;
-
-    let mover = null;
-    if (String(left?.userId) === String(userId)) mover = left;
-    if (String(right?.userId) === String(userId)) mover = right;
+    const mover = game.players?.find(p => String(p.userId) === String(userId));
 
     if (!mover) return res.status(403).json({ error: "Nie jesteś graczem w tej grze" });
     if (!mover.symbol) return res.status(400).json({ error: "Symbole nie są jeszcze przypisane" });
@@ -219,7 +150,12 @@ function makeMove(req, res) {
     if (winner) {
         game.status = "finished";
         game.winner = winner;
-        game.winnerSide = mover.symbol === left?.symbol ? "left" : "right";
+        const moverIndex = game.players.findIndex(p => String(p.userId) === String(userId));
+        game.winnerIndex = moverIndex;
+        if (!game.score) game.score = [0, 0];
+        if (moverIndex !== null && moverIndex >= 0 && moverIndex < 2) {
+        game.score[moverIndex] += 1;
+    }
     } else if (isDraw) {
         game.status = "draw";
         game.winner = null;
@@ -243,57 +179,36 @@ function makeMove(req, res) {
     return res.json({ success: true, game });
 }
 
-function getSideByUserId(game, userId) {
-    if (!game.players) return null;
-    if (String(game.players?.left?.userId) === String(userId)) return "left";
-    if (String(game.players?.right?.userId) === String(userId)) return "right";
-    return null;
-}
-
 function setRematchReady(gameId, userId) {
-    const game = games.get(gameId);
-    if (!game) return { ok: false, error: "Gra nie istnieje" };
-    if (game.status === "ongoing") {
-        return { ok: false, error: "Gra jeszcze trwa" };
-    }
-
-    const side = getSideByUserId(game, userId);
-    if (!side) return { ok: false, error: "Nie jesteś graczem w tej grze" };
-
-    if (!game.rematchReady) game.rematchReady = { left: false, right: false };
-    game.rematchReady[side] = true;
-
-    const count = (game.rematchReady.left ? 1 : 0) + (game.rematchReady.right ? 1 : 0);
-    const bothReady = count === 2;
-
-    return { ok: true, game, count, bothReady };
+    return gameUtils.setRematchReady(games, gameId, userId);
 }
 
 function createRematchGameFromOld(oldGame) {
-    const gameId = generateGameId();
-
-    const left = oldGame.players?.left ? { ...oldGame.players.left } : null;
-    const right = oldGame.players?.right ? { ...oldGame.players.right } : null;
-
-    if (left) delete left.symbol;
-    if (right) delete right.symbol;
-
+    const gameId = gameUtils.generateGameId();
+    const lastScore = [...(oldGame.score || [0, 0])];
     const newGame = {
-        id: gameId,
-        roomName: oldGame.roomName || null,
-        players: { left, right },
-        board: createEmptyBoard(),
-        currentTurn: "X",
-        moves: [],
-        status: "ongoing",
-        winner: null,
-        rematchReady: { left: false, right: false },
+      id: gameId,
+      roomName: oldGame.roomName || null,
+      players: oldGame.players ? oldGame.players.map(p => {
+        const newP = { ...p };
+        delete newP.symbol; // Usuń symbol dla rematchu
+        return newP;
+      }) : [],
+      maxPlayers: oldGame.maxPlayers || 2,
+      minPlayers: oldGame.minPlayers || 2,
+      board: createEmptyBoard(),
+      currentTurn: "X",
+      moves: [],
+      score: lastScore,
+      status: "ongoing",
+      winner: null,
+      rematchReady: {},
     };
-
+  
     assignSymbolsIfReady(newGame);
     games.set(gameId, newGame);
     return newGame;
-}
+  }
 
 module.exports = {
     createGameSocket,

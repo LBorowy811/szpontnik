@@ -29,7 +29,7 @@
         </button>
 
         <div class="rematch-box">
-            <button class="end-btn primary" type="button" @click="requestRematch" :disabled="!mySide" style="opacity: 0.95;">
+            <button class="end-btn primary" type="button" @click="requestRematch" :disabled="myPlayerIndex === null" style="opacity: 0.95;">
               Zagraj ponownie
             </button>
           <div class="rematch-count">{{ state.rematchCount }}/2</div>
@@ -53,20 +53,20 @@ import { makeCheckersStartPieces } from "@/components/checkers/checkersStartPiec
 const route = useRoute();
 const router = useRouter();
 
-const score = reactive({ left: 0, right: 0 });
+const score = ref([0, 0]);
 const moves = ref([]);
 const selectedPiece = ref(null);
 
 const state = reactive({
   gameId: null,
-  players: { left: null, right: null },
+  players: [null, null],
   pieces: makeCheckersStartPieces(),
   currentTurn: "white",
-  validMoves: [], // [{x,y}]
+  validMoves: [],
   forcedPieceId: null,
-
   status: "ongoing",
   winner: null,
+  winnerIndex: null,
   finishReason: null,
   rematchCount: 0,
 });
@@ -85,23 +85,33 @@ function normalizePlayer(p) {
 function applyGame(game) {
   state.gameId = game?.id ?? null;
 
-  state.players = {
-    left: normalizePlayer(game?.players?.left),
-    right: normalizePlayer(game?.players?.right),
-  };
+  const playersArray = Array.isArray(game?.players) ? game.players : [];
+  state.players = [
+    normalizePlayer(playersArray[0]),
+    normalizePlayer(playersArray[1]),
+  ];
 
   state.pieces = game?.pieces || makeCheckersStartPieces();
   state.currentTurn = game?.currentTurn || "white";
   moves.value = game?.moves ?? [];
-  score.left = game?.score?.left ?? 0;
-  score.right = game?.score?.right ?? 0;
+  
+  if (Array.isArray(game?.score)) {
+    console.log("[CHECKERS] applyGame score from backend:", game.score);
+    score.value = [game.score[0] ?? 0, game.score[1] ?? 0];
+    console.log("[CHECKERS] applyGame score from backend:", game.score);
+  } else {
+    console.log("[CHECKERS] applyGame score from backend:", game.score);
+    score.value = [0, 0];
+  }
+  
   state.forcedPieceId = game?.mustContinueCapture?.pieceId ?? null;
   state.status = game?.status || "ongoing";
   state.winner = game?.winner ?? null;
+  state.winnerIndex = game?.winnerIndex ?? null;
   state.finishReason = game?.finishReason ?? null;
 
   const ready = game?.rematchReady;
-  state.rematchCount = ready ? (ready.left ? 1 : 0) + (ready.right ? 1 : 0) : 0;
+  state.rematchCount = ready ? Object.keys(ready).length : 0;
 
   console.log("[CHECKERS] applyGame -> players:", state.players, "turn:", state.currentTurn);
 
@@ -119,7 +129,6 @@ function applyGame(game) {
   if (forcedForMe) {
     selectedPiece.value = forced;
 
-    //kontynuowanie ruchu tylko przy biciu
     const caps = getCaptureMovesLocal(forced);
     state.validMoves = caps;
   } else {
@@ -177,9 +186,9 @@ function socketWatchGame(gameId) {
   });
 }
 
-function socketJoinGame({ gameId, side, username, userId }) {
+function socketJoinGame({ gameId, username, userId }) {
   return new Promise((resolve, reject) => {
-    socket.emit("checkers:joinGame", { gameId, side, username, userId }, (resp) => {
+    socket.emit("checkers:joinGame", { gameId, username, userId }, (resp) => {
       if (!resp?.ok) return reject(new Error(resp?.error || "joinGame failed"));
       resolve(resp.game);
     });
@@ -214,19 +223,25 @@ function getLoggedUserOrNull() {
 const myUser = computed(() => getLoggedUserOrNull());
 
 
-const mySide = computed(() => {
+const myPlayerIndex = computed(() => {
   const me = myUser.value;
   if (!me?.id) return null;
-  if (state.players?.left?.userId === me.id) return "left";
-  if (state.players?.right?.userId === me.id) return "right";
+  
+  if (!Array.isArray(state.players)) return null;
+  
+  for (let i = 0; i < state.players.length; i++) {
+    if (state.players[i]?.userId === me.id) {
+      return i;
+    }
+  }
   return null;
 });
 
 
 const myColor = computed(() => {
-  if (mySide.value === "left") return state.players?.left?.color || null;
-  if (mySide.value === "right") return state.players?.right?.color || null;
-  return null;
+  const index = myPlayerIndex.value;
+  if (index === null) return null;
+  return state.players[index]?.color || null;
 });
 
 
@@ -247,11 +262,9 @@ const endMessage = computed(() => {
   }
 
   if (state.status === "finished") {
-    if (state.winnerSide === "left") {
-      return `Wygrał ${state.players?.left?.username || "gracz"}`;
-    }
-    if (state.winnerSide === "right") {
-      return `Wygrał ${state.players?.right?.username || "gracz"}`;
+    const winnerIndex = state.winnerIndex;
+    if (winnerIndex !== null && winnerIndex >= 0 && winnerIndex < state.players.length) {
+      return `Wygrał ${state.players[winnerIndex]?.username || "gracz"}`;
     }
     return "Gra zakończona.";
   }
@@ -260,7 +273,7 @@ const endMessage = computed(() => {
 });
 
 
-async function handleJoin({ side, gameId }) {
+async function handleJoin({ playerIndex, gameId }) {
   const user = getLoggedUserOrNull();
 if (!user?.id || !user?.username) {
   alert("Musisz być zalogowany, żeby dołączyć do gry.");
@@ -279,7 +292,6 @@ const userId = user.id;
   try {
     const updatedGame = await socketJoinGame({
       gameId: realGameId,
-      side,
       username,
       userId,
     });
@@ -354,7 +366,6 @@ function getCaptureMovesLocal(piece) {
   ];
 
   if (piece.king) {
-    //jesli po drodze krola jest tylko jeden pionek to bicie i pozniej dowolne puste pole w tej samej linii
     for (const { dx, dy } of dirs) {
       let x = piece.x + dx;
       let y = piece.y + dy;
@@ -404,13 +415,11 @@ function handlePieceClick(piece) {
   if (state.status !== "ongoing") return;
   if (!myColor.value) return;
 
-  //tylko swoim kolorem
   if (piece.color !== myColor.value) return;
   if (!isMyTurn.value) return;
-  if (state.forcedPieceId && piece.id !== state.forcedPieceId) return;//kontynuacja bicia
+  if (state.forcedPieceId && piece.id !== state.forcedPieceId) return;
 
   if (selectedPiece.value?.id === piece.id) {
-    // jeśli jest wymuszenie kontynuacji bicia, nie pozwalaj odznaczyć
     if (state.forcedPieceId && piece.id === state.forcedPieceId) {
       return;
     }
@@ -425,7 +434,7 @@ function handlePieceClick(piece) {
 
   const caps = getCaptureMovesLocal(piece);
   if (caps.length > 0) {
-    state.validMoves = caps; // bicia
+    state.validMoves = caps;
   } else {
     if (piece.king) {
       state.validMoves = getKingSlideMoves(piece);
@@ -474,21 +483,17 @@ onMounted(async () => {
       const game = await socketWatchGame(gameIdFromUrl);
       applyGame(game);
 
-      //rejoin
       if (me?.id) {
-        let side = null;
-
-        if (game?.players?.left?.userId === me.id) side = "left";
-        if (game?.players?.right?.userId === me.id) side = "right";
-
-        if (side) {
+        const playersArray = Array.isArray(game?.players) ? game.players : [];
+        const myIndex = playersArray.findIndex(p => String(p?.userId) === String(me.id));
+        
+        if (myIndex !== -1) {
           const updatedGame = await socketJoinGame({
             gameId: gameIdFromUrl,
-            side,
             username: me.username,
             userId: me.id,
           });
-
+          
           applyGame(updatedGame);
         }
       }
