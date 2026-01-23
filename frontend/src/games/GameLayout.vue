@@ -4,9 +4,7 @@
       <slot name="board" />
     </div>
 
-    <div id="side-panel">
-      <slot name="side"></slot>
-    </div>
+    <slot name="side"></slot>
   </section>
 
   <section class="playersJoinInfo" id="players">
@@ -191,13 +189,6 @@ function formatTime(time) {
   flex-shrink: 0;
 }
 
-#side-panel {
-  width: 260px;
-  height: 500px;
-  background: black;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
 
 .playersJoinInfo {
   width: 950px;

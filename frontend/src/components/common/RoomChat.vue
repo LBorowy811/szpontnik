@@ -123,8 +123,8 @@ watch(() => props.gameId, () => {
 
 <style scoped>
 .room-chat {
-  width: 100%;
-  height: 100%;
+  width: 320px;
+  height: 600px;
   display: flex;
   flex-direction: column;
   background: var(--bg-color);

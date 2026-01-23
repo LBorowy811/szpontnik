@@ -9,6 +9,7 @@ const { Server } = require('socket.io');
 //import kontrolerow do gier
 const checkersController = require('./controllers/checkersController');
 const tictactoeController = require('./controllers/tictactoeController');
+const diceController = require('./controllers/diceController');
 //import handlerow socketa
 const setupGlobalChatHandler = require('./socketHandlers/globalchatHandler');
 const setupGameRoomChatHandler = require('./socketHandlers/gameRoomChatHandler');
@@ -29,6 +30,7 @@ const PORT = 3000;
 const controllersByGameKey = {
   checkers: checkersController,
   tictactoe: tictactoeController,
+  dice: diceController,
 };
 
 // funkcja pomocnicza do konfiguracji cors (Z MAIN)

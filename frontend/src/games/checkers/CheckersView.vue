@@ -96,11 +96,8 @@ function applyGame(game) {
   moves.value = game?.moves ?? [];
   
   if (Array.isArray(game?.score)) {
-    console.log("[CHECKERS] applyGame score from backend:", game.score);
     score.value = [game.score[0] ?? 0, game.score[1] ?? 0];
-    console.log("[CHECKERS] applyGame score from backend:", game.score);
   } else {
-    console.log("[CHECKERS] applyGame score from backend:", game.score);
     score.value = [0, 0];
   }
   

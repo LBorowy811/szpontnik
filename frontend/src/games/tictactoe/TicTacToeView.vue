@@ -12,9 +12,8 @@
         />
       </div>
 
-      <div id="side-panel">
-        <RoomChat game-key="tictactoe" :game-id="state.gameId" />
-      </div>
+      <RoomChat game-key="tictactoe" :game-id="state.gameId" />
+
     </section>
 
     <section class="playersJoinInfo">
@@ -453,14 +452,6 @@ function exitToHome() {
   align-items: center;
 }
 
-#side-panel {
-  width: 260px;
-  height: 500px;
-  background: var(--bg-color);
-  border: 2px solid var(--border-color-dimmed);
-  flex-shrink: 0;
-  overflow: hidden;
-}
 
 .playersJoinInfo {
   width: 950px;

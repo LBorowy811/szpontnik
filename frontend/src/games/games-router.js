@@ -19,4 +19,9 @@ export default [
     name: "TicTacToe",
     component: () => import("./tictactoe/TicTacToeView.vue"),
   },
+  {
+    path: "/games/dice",
+    name: "Dice",
+    component: () => import("./dice/DiceView.vue"),
+  },
 ];
