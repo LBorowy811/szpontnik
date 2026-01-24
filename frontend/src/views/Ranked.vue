@@ -22,6 +22,12 @@ const games = [
   { name: "Kółko i krzyżyk", img: new URL('../assets/home/kolko-i-krzyzyk.png', import.meta.url).href },
 ];
 
+const gameRoutes = {
+  "Szachy": "/games/chess/rooms?ranked=true",
+  "Warcaby": "/games/checkers/rooms?ranked=true",
+  "Kółko i krzyżyk": "/games/tictactoe/rooms?ranked=true",
+};
+
 function openGame(game) {
   const path = gameRoutes[game.name];
   if (!path) return;

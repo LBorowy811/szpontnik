@@ -14,6 +14,10 @@
           <img src="../assets/sidebar/trophy.png" alt="Turnieje" class="icon" />
           <span>Turnieje</span>
         </router-link>
+        <router-link to="/ranking" class="menu-item">
+          <img src="../assets/sidebar/ranking.png" alt="Ranking" class="icon" />
+          <span>Ranking</span>
+        </router-link>
       </div>
       <div class="bottom">
         <div v-if="isLoggedIn" class="menu-item" @click="toggleChat">
@@ -55,7 +59,7 @@ const checkLoginStatus = () => {
   isLoggedIn.value = !!userData
   if (!userData) {
     isChatOpen.value = false
-    unreadCount = 0
+    unreadCount.value = 0
   }
 }
 

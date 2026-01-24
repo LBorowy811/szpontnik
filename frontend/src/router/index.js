@@ -7,6 +7,7 @@ import Settings from '../views/Settings.vue'
 import Ranked from '../views/Ranked.vue'
 import Tournaments from '../views/Tournaments.vue'
 import AccountSettings from '../views/AccountSettings.vue'
+import Ranking from '../views/Ranking.vue'
 import gamesRoutes from '@/games/games-router.js'
 
 // weryfikacja tokenu przez endpoint /auth/verify (prawidłowość tokenu i jego aktualność)
@@ -71,6 +72,11 @@ const routes = [
     name: 'AccountSettings',
     component: AccountSettings,
     beforeEnter: requireAuth,
+  },
+  {
+    path: '/ranking',
+    name: 'Ranking',
+    component: Ranking,
   },
   {
     path: '/games/:gameKey/rooms',

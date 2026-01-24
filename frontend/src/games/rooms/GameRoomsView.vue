@@ -1,7 +1,7 @@
 <template>
   <div class="rooms-page">
       <div class="title">
-        <span>Pokoje: {{ gameLabel }}</span>
+        <span>{{ isRanked ? 'Pokoje rankingowe' : 'Pokoje' }}: {{ gameLabel }}</span>
       </div>
       <div class="create">
         <button class="create-btn" type="button" @click="openCreateModal">
@@ -87,9 +87,12 @@ const route = useRoute();
 const router = useRouter();
 
 const gameKey = computed(() => String(route.params.gameKey || ""));
+const isRanked = computed(() => route.query.ranked === 'true');
 const gameLabel = computed(() => {
+  if (gameKey.value === "chess") return "Szachy";
   if (gameKey.value === "checkers") return "Warcaby";
   if (gameKey.value === "tictactoe") return "Kółko i krzyżyk";
+  if (gameKey.value === "dice") return "Kości";
   if (gameKey.value === "pictionary") return "Kalambury";
   return gameKey.value;
 });
@@ -112,7 +115,7 @@ function closeCreateModal() {
 }
 
 function fetchRooms() {
-  socket.emit("rooms:list", { gameKey: gameKey.value }, (resp) => {
+  socket.emit("rooms:list", { gameKey: gameKey.value, ranked: isRanked.value }, (resp) => {
     if (!resp?.ok) return;
     rooms.value = resp.rooms || [];
   });
@@ -125,7 +128,7 @@ function confirmCreateRoom() {
 
   socket.emit(
     "rooms:create",
-    { gameKey: gameKey.value, roomName: newRoomName.value.trim() },
+    { gameKey: gameKey.value, roomName: newRoomName.value.trim(), ranked: isRanked.value },
     (resp) => {
       isCreating.value = false;
 
@@ -172,7 +175,7 @@ onUnmounted(() => {
   socket.off("rooms:updated", onRoomsUpdated);
 });
 
-watch(gameKey, () => {
+watch([gameKey, isRanked], () => {
   fetchRooms();
 });
 </script>

@@ -266,7 +266,7 @@ function finishGameIfNeeded(game) {
     game.score[1] += 1;
     return;
   }
-  
+
   if (blackCount === 0) {
     game.status = "finished";
     game.winnerIndex = 0; // biale wygrywa
@@ -275,7 +275,6 @@ function finishGameIfNeeded(game) {
     game.score[0] += 1;
     return;
   }
-
 
   const turn = game.currentTurn;
   if (!hasAnyLegalMoveForColor(game, turn)) {
@@ -491,12 +490,13 @@ if (wantsCapture && hasFurtherCapture) {
 }
 
 
-function createGameSocket({ player1, player2, roomName } = {}) {
+function createGameSocket({ player1, player2, roomName, ranked = false } = {}) {
   const gameId = gameUtils.generateGameId();
 
   const newGame = {
     id: gameId,
     roomName: roomName || null,
+    ranked: ranked,
     players: [], // tablica graczy, zamiast left/rigt
     maxPlayers: 2,
     minPlayers: 2,
@@ -568,6 +568,7 @@ function createRematchGameFromOld(oldGame) {
   const newGame = {
     id: gameId,
     roomName: oldGame.roomName || null,
+    ranked: oldGame.ranked || false,
     players: oldGame.players ? oldGame.players.map(p => ({ ...p })) : [],
     maxPlayers: oldGame.maxPlayers || 2,
     minPlayers: oldGame.minPlayers || 2,

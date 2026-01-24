@@ -15,6 +15,7 @@
     <canvas
       ref="canvas"
       class="drawing-canvas"
+      :class="{ 'is-drawer': isDrawer }"
       width="800"
       height="600"
       @mousedown="startDrawing"
@@ -98,8 +99,8 @@ const brushSize = ref(3);
 const timeLeft = ref(60);
 
 const colors = [
-  '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
-  '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080',
+  '#000000', '#FFFFFF', '#808080', '#FF0000', '#0000FF',
+  '#00FF00', '#FFFF00', '#FFA500', '#8B4513', '#FFC0CB',
 ];
 
 let animationFrameId = null;
@@ -369,12 +370,12 @@ defineExpose({
 .drawing-canvas {
   border: 2px solid var(--border-color-dimmed);
   background: #FFFFFF;
-  cursor: crosshair;
+  cursor: default;
   display: block;
 }
 
-.drawing-canvas:not([data-drawer="true"]) {
-  cursor: not-allowed;
+.drawing-canvas.is-drawer {
+  cursor: crosshair;
 }
 
 .controls {

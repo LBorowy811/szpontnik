@@ -22,6 +22,7 @@ const setupPictionaryHandler = require('./socketHandlers/pictionaryHandler');
 //import routingu
 const authRoutes = require('./routes/authRoutes');
 const checkersRoutes = require('./routes/checkersRoutes');
+const rankingRoutes = require('./routes/rankingRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -62,6 +63,7 @@ app.use(cookieParser());
 // routing
 app.use('/api/auth', authRoutes);
 app.use('/api/checkers', checkersRoutes);
+app.use('/api/ranking', rankingRoutes);
 
 // testowy endpoint
 app.get('/', (req, res) => {
