@@ -39,12 +39,14 @@
   transition: border-color 0.3s ease, transform 0.2s ease;
   font-family: "JetBrains Mono";
   color: var(--font-color);
+  text-decoration: none;
 }
 
 .card:hover {
   border-color: var(--active-item);
   transform: translateY(-5px);
   color: var(--active-item);
+  background-color: var(--bg-color);
 }
 
 .card img {

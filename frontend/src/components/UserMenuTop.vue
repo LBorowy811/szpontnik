@@ -1,10 +1,10 @@
 <template>
   <div class="usermenutop">
     <div class="nav">
-      <div class="left" @click="goToHome">
+      <router-link to="/" class="left">
         <img src="../assets/usermenutop/makajler32x32.png" alt="Logo" class="logo" />
         <span>Szpontnik</span>
-      </div>
+      </router-link>
       <div class="middle">
         gry online, zagraj z innymi osobami
       </div>
@@ -12,14 +12,14 @@
         <span class="welcome-text">Witaj, {{ user?.username }}!</span>
         <button @click="handleLogout" class="logout-button">Wyloguj się</button>
       </div>
-      <button v-else @click="goToLogin">Zaloguj się</button>
+      <router-link v-else to="/login" class="btn">Zaloguj się</router-link>
     </div>
   </div>
 </template>
 
 <script setup>
 import { authAPI } from '../services/api.js'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import socket from '../services/socket.js'
 
@@ -71,23 +71,16 @@ const handleLogout = async () => {
   window.location.reload()
 }
 
-// przejście do strony logowania
-const goToLogin = () => {
-  router.push('/login')
-}
-
-// przejście do strony głównej
-const goToHome = () => {
-  router.push('/')
-}
-
-// custom event wywoływany po zalogowaniu
-window.addEventListener('userLogin', checkLoginStatus)
-window.addEventListener('storage', checkLoginStatus)
-
 // sprawdzenie stanu zalogowania
 onMounted(() => {
   checkLoginStatus()
+  window.addEventListener('userLogin', checkLoginStatus)
+  window.addEventListener('storage', checkLoginStatus)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('userLogin', checkLoginStatus)
+  window.removeEventListener('storage', checkLoginStatus)
 })
 </script>
 
@@ -95,9 +88,7 @@ onMounted(() => {
 .usermenutop {
   font-family: "JetBrains Mono";
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   z-index: 1;
   height: 50px;
   padding: 0 1rem;
@@ -121,6 +112,12 @@ onMounted(() => {
   width: 100%;
   padding: 10px 0;
   color: var(--font-color);
+}
+
+.left, .btn {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
 }
 
 .left {
@@ -154,7 +151,7 @@ onMounted(() => {
   font-size: 1.2rem;
 }
 
-button {
+.btn {
   background: none;
   border: 2px solid transparent;
   padding: 4px;
@@ -165,7 +162,7 @@ button {
   transition: border-color 0.3s ease, color 0.3s ease;
 }
 
-button:hover {
+.btn:hover {
   border-color: var(--active-item);
   color: var(--active-item);
 }
@@ -187,7 +184,7 @@ button:hover {
   padding: 4px;
   font-family: inherit;
   font-size: inherit;
-  color: var(--font-color);
+  color: rgba(255, 0, 0, 0.719);
   cursor: pointer;
   transition: border-color 0.3s ease, color 0.3s ease;
 }

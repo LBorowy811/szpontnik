@@ -14,4 +14,14 @@ export default [
     name: "Scrable",
     component: () => import("./scrable/ScrableView.vue"),
   },
+  {
+    path: "/games/tictactoe",
+    name: "TicTacToe",
+    component: () => import("./tictactoe/TicTacToeView.vue"),
+  },
+  {
+    path: "/games/dice",
+    name: "Dice",
+    component: () => import("./dice/DiceView.vue"),
+  },
 ];

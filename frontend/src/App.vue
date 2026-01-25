@@ -17,6 +17,7 @@ import UserMenuTop from './components/UserMenuTop.vue';
 body {
   background-color: var(--bg-app-color);
   margin: 0;
+  font-family: 'JetBrains Mono';
 }
 
 .main-content {
@@ -35,5 +36,10 @@ body {
 
 .main-content:hover {
   border: 2px solid var(--border-color);
+}
+
+.main-content:hover .title {
+    border-color: var(--border-color);
+    color: var(--font-color);
 }
 </style>
