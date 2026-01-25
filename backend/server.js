@@ -11,6 +11,7 @@ const checkersController = require('./controllers/checkersController');
 const tictactoeController = require('./controllers/tictactoeController');
 const diceController = require('./controllers/diceController');
 const chinczykController = require('./controllers/chinczykController');
+const pictionaryController = require('./controllers/pictionaryController');
 //import handlerow socketa
 const setupGlobalChatHandler = require('./socketHandlers/globalchatHandler');
 const setupGameRoomChatHandler = require('./socketHandlers/gameRoomChatHandler');
@@ -18,11 +19,13 @@ const setupGameSocketHandlers = require('./socketHandlers/gamehandler');
 const setupRoomsHandler = require('./socketHandlers/roomHandler');
 const setupDisconnectHandler = require('./socketHandlers/disconnectHandler');
 const setupTournamentSocketHandlers = require('./socketHandlers/tournamentHandler');
+const setupPictionaryHandler = require('./socketHandlers/pictionaryHandler');
 
 //import routingu
 const authRoutes = require('./routes/authRoutes');
 const checkersRoutes = require('./routes/checkersRoutes');
 const chinczykRoutes = require('./routes/chinczykRoutes');
+const rankingRoutes = require('./routes/rankingRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -36,6 +39,7 @@ const controllersByGameKey = {
   tictactoe: tictactoeController,
   dice: diceController,
   chinczyk: chinczykController,
+  pictionary: pictionaryController,
 };
 
 // funkcja pomocnicza do konfiguracji cors (Z MAIN)
@@ -65,6 +69,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/checkers', checkersRoutes);
 app.use('/api/chinczyk', chinczykRoutes);
+app.use('/api/ranking', rankingRoutes);
 
 // testowy endpoint
 app.get('/', (req, res) => {
@@ -145,6 +150,9 @@ io.on('connection', (socket) => {
   for (const [gameKey, controller] of Object.entries(controllersByGameKey)) {
     setupGameSocketHandlers(socket, io, gameKey, controller, emitRoomsUpdated);
   }
+
+  // ===== SPECJALNE HANDLERY DLA PICTIONARY =====
+  setupPictionaryHandler(socket, io, pictionaryController, emitRoomsUpdated);
 
   // ===== UNIVERSAL ROOMS SOCKETS =====
   setupRoomsHandler(socket, io, controllersByGameKey, emitRoomsUpdated);

@@ -45,6 +45,7 @@ const gameRoutes = {
   "Chińczyk": "/games/chinczyk/rooms",
   "Kółko i krzyżyk": "/games/tictactoe/rooms",
   "Kości": "/games/dice/rooms",
+  "Kalambury": "/games/pictionary/rooms",
 };
 
 </script>

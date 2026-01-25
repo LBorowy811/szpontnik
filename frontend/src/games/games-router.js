@@ -29,4 +29,9 @@ export default [
     name: "Chinczyk",
     component: () => import("./chinczyk/ChinczykView.vue"),
   },
+  {
+    path: "/games/pictionary",
+    name: "Pictionary",
+    component: () => import("./pictionary/PictionaryView.vue"),
+  },
 ];

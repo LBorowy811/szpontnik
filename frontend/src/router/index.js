@@ -9,6 +9,7 @@ import Tournaments from '../views/Tournaments.vue'
 import TournamentBracket from '../views/TournamentBracket.vue'
 import AccountSettings from '../views/AccountSettings.vue'
 import Chinczyk from '../views/Chinczyk.vue'
+import Ranking from '../views/Ranking.vue'
 import gamesRoutes from '@/games/games-router.js'
 
 // weryfikacja tokenu przez endpoint /auth/verify (prawidłowość tokenu i jego aktualność)
@@ -85,6 +86,11 @@ const routes = [
     name: 'Chinczyk',
     component: Chinczyk,
     beforeEnter: requireAuth,
+  },
+  {
+    path: '/ranking',
+    name: 'Ranking',
+    component: Ranking,
   },
   {
     path: '/games/:gameKey/rooms',

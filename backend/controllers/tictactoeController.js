@@ -45,12 +45,13 @@ function isBoardFull(board) {
     return true
 }
 
-function createGameSocket({ roomName } = {}) {
+function createGameSocket({ roomName, ranked = false } = {}) {
     const gameId = gameUtils.generateGameId();
-  
+
     const newGame = {
       id: gameId,
       roomName: roomName || null,
+      ranked: ranked,
       players: [], // gracze jako tablica nie left/right
       maxPlayers: 2,
       minPlayers: 2,
@@ -63,7 +64,7 @@ function createGameSocket({ roomName } = {}) {
       winner: null,
       rematchReady: {},
     };
-  
+
     games.set(gameId, newGame);
     return newGame;
   }
@@ -154,8 +155,8 @@ function makeMove(req, res) {
         game.winnerIndex = moverIndex;
         if (!game.score) game.score = [0, 0];
         if (moverIndex !== null && moverIndex >= 0 && moverIndex < 2) {
-        game.score[moverIndex] += 1;
-    }
+            game.score[moverIndex] += 1;
+        }
     } else if (isDraw) {
         game.status = "draw";
         game.winner = null;
@@ -189,6 +190,7 @@ function createRematchGameFromOld(oldGame) {
     const newGame = {
       id: gameId,
       roomName: oldGame.roomName || null,
+      ranked: oldGame.ranked || false,
       players: oldGame.players ? oldGame.players.map(p => {
         const newP = { ...p };
         delete newP.symbol; // Usuń symbol dla rematchu
