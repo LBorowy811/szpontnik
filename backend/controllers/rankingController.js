@@ -4,7 +4,7 @@ const connectToDatabase = require('../database/database');
 exports.getRankingByGame = async (req, res) => {
   const { gameType } = req.params;
 
-  const validGameTypes = ['chess', 'checkers', 'tictactoe'];
+  const validGameTypes = ['dice', 'checkers', 'tictactoe'];
   if (!validGameTypes.includes(gameType)) {
     return res.status(400).json({
       message: 'Nieprawidłowy typ gry'

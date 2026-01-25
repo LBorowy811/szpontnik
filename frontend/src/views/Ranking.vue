@@ -51,12 +51,12 @@ import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 const games = [
-  { key: 'chess', label: 'Szachy' },
+  { key: 'dice', label: 'Kości' },
   { key: 'checkers', label: 'Warcaby' },
   { key: 'tictactoe', label: 'Kółko i krzyżyk' },
 ];
 
-const activeGame = ref('chess');
+const activeGame = ref('dice');
 const ranking = ref([]);
 const loading = ref(false);
 

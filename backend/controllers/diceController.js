@@ -119,12 +119,13 @@ function getTotalScore(playerScore) {
   return upperSum + playerScore.upperBonus + lowerSum + playerScore.yahtzeeBonus;
 }
 
-function createGameSocket({ roomName } = {}) {
+function createGameSocket({ roomName, ranked = false } = {}) {
   const gameId = gameUtils.generateGameId();
-  
+
   const newGame = {
     id: gameId,
     roomName: roomName || null,
+    ranked: ranked,
     players: [],
     maxPlayers: 4,
     minPlayers: 2,
@@ -448,6 +449,7 @@ function createRematchGameFromOld(oldGame) {
   const newGame = {
     id: gameId,
     roomName: oldGame.roomName || null,
+    ranked: oldGame.ranked || false,
     players: oldGame.players ? oldGame.players.map(p => ({ ...p })) : [],
     maxPlayers: oldGame.maxPlayers || 4,
     minPlayers: oldGame.minPlayers || 2,

@@ -89,7 +89,6 @@ const router = useRouter();
 const gameKey = computed(() => String(route.params.gameKey || ""));
 const isRanked = computed(() => route.query.ranked === 'true');
 const gameLabel = computed(() => {
-  if (gameKey.value === "chess") return "Szachy";
   if (gameKey.value === "checkers") return "Warcaby";
   if (gameKey.value === "tictactoe") return "Kółko i krzyżyk";
   if (gameKey.value === "dice") return "Kości";
