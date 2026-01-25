@@ -24,4 +24,9 @@ export default [
     name: "Dice",
     component: () => import("./dice/DiceView.vue"),
   },
+  {
+    path: "/games/chinczyk",
+    name: "Chinczyk",
+    component: () => import("./chinczyk/ChinczykView.vue"),
+  },
 ];

@@ -43,7 +43,7 @@ function generateGameId() {
       rooms.push({
         id,
         roomName: game.roomName || null,
-        status: playersCount < minPlayers ? "waiting" : (game.status || "playing"),
+        status: (playersCount < maxPlayers && !game.gameStarted) ? "waiting" : (game.status || "playing"),
         playersCount,
         maxPlayers,
         players: game.players.map(p => ({

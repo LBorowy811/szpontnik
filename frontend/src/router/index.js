@@ -6,6 +6,7 @@ import Register from '../views/Register.vue'
 import Settings from '../views/Settings.vue'
 import Ranked from '../views/Ranked.vue'
 import Tournaments from '../views/Tournaments.vue'
+import TournamentBracket from '../views/TournamentBracket.vue'
 import AccountSettings from '../views/AccountSettings.vue'
 import Chinczyk from '../views/Chinczyk.vue'
 import gamesRoutes from '@/games/games-router.js'
@@ -65,6 +66,12 @@ const routes = [
     path:'/tournaments',
     name: 'Tournaments',
     component: Tournaments,
+    beforeEnter: requireAuth,
+  },
+  {
+    path: '/tournaments/:id',
+    name: 'TournamentBracket',
+    component: TournamentBracket,
     beforeEnter: requireAuth,
   },
   {

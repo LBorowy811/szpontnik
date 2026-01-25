@@ -201,14 +201,25 @@
         </div>
       </div>
 
-      <!-- Modal wygranej -->
-      <div v-if="winner" class="winner-modal">
+      <!-- Modal wygranej - standardowa gra -->
+      <div v-if="winner && !isTournamentMatch" class="winner-modal">
         <div class="winner-content">
           <h2>🎉 Koniec gry! 🎉</h2>
           <p class="winner-name" :style="{ color: getPlayerColor(winner.index) }">
             Wygrał: {{ winner.name }}
           </p>
           <button @click="leaveRoom">Wróć do menu</button>
+        </div>
+      </div>
+      
+      <!-- Modal wygranej - mecz turniejowy -->
+      <div v-if="winner && isTournamentMatch" class="winner-modal">
+        <div class="winner-content">
+          <h2>🎉 Koniec gry! 🎉</h2>
+          <p class="winner-name" :style="{ color: getPlayerColor(winner.index) }">
+            Wygrał: {{ winner.name }}
+          </p>
+          <p>Przekierowywanie do turnieju...</p>
         </div>
       </div>
     </div>
@@ -222,20 +233,18 @@ import PlayerInfo from '../compontents/chinczyk/chinczyk_playerInfo.vue'
 import Chat from '../compontents/chinczyk/chinczyk_chat.vue'
 import chinczykService from '../services/chinczykService.js'
 import chinczykLocalGame from '../services/chinczykLocalGame.js'
+import { reportMatchResult } from '../services/tournamentService.js'
 
 export default {
   components: { Board, Dice, PlayerInfo, Chat },
   data() {
     return {
-      // Tryb gry
-      gameMode: 'local', // 'local' lub 'online'
+      gameMode: 'local',
       isLocalGame: false,
       
-      // Gra lokalna
       localPlayerCount: 2,
       localPlayerNames: ['', '', '', ''],
       
-      // Stan pokoju
       roomJoined: false,
       roomId: null,
       playerName: '',
@@ -244,7 +253,6 @@ export default {
       isRoomCreator: false,
       myPlayerId: null,
       
-      // Stan gry
       gameStarted: false,
       gameState: null,
       players: [],
@@ -254,19 +262,24 @@ export default {
       movablePawns: [],
       winner: null,
       
-      // Czat
       chatMessages: [],
       
-      // Komunikaty
       errorMessage: '',
       
-      // Socket status
       socketConnected: false
     }
   },
   computed: {
+    isTournamentMatch() {
+      return !!(this.$route.query.tournament && this.$route.query.matchId);
+    },
+    tournamentId() {
+      return this.$route.query.tournament;
+    },
+    matchId() {
+      return this.$route.query.matchId;
+    },
     isMyTurn() {
-      // W grze lokalnej zawsze jest twoja tura (hot-seat)
       if (this.isLocalGame) return true
       
       if (!this.gameState || !this.myPlayerId) return false
@@ -428,10 +441,8 @@ export default {
     async onPawnClicked(pawn) {
       if (!this.isMyTurn || !this.currentDice) return
       
-      // Sprawdź czy pionek można ruszyć
       if (!this.movablePawns.some(p => p.id === pawn.id)) return
       
-      // Gra lokalna
       if (this.isLocalGame) {
         const result = chinczykLocalGame.movePawn(pawn.id)
         
@@ -442,7 +453,6 @@ export default {
           this.movablePawns = []
           this.selectedPawn = null
           
-          // Sprawdź wygranego
           if (result.winner !== null) {
             this.winner = {
               index: result.winner,
@@ -462,7 +472,6 @@ export default {
       }
     },
 
-    // Pomocnicze
     getPlayerColor(index) {
       const colors = ['red', 'blue', 'green', 'yellow']
       return colors[index] || 'gray'
@@ -488,7 +497,6 @@ export default {
       chinczykService.sendChatMessage(message)
     },
 
-    // Event handlers
     setupSocketListeners() {
       chinczykService.onPlayerJoined((data) => {
         this.players = data.players
@@ -540,13 +548,34 @@ export default {
         this.addSystemMessage(`Tura gracza: ${player?.name || 'Gracz'}`)
       })
 
-      chinczykService.onGameFinished((data) => {
+      chinczykService.onGameFinished(async (data) => {
         const winnerPlayer = this.players[data.winnerIndex]
         this.winner = {
           name: winnerPlayer?.name || 'Gracz',
           index: data.winnerIndex
         }
         this.addSystemMessage(`🎉 ${this.winner.name} wygrał grę!`)
+        
+        if (this.isTournamentMatch) {
+          const winnerId = this.players[data.winnerIndex]?.id;
+          
+          try {
+            await reportMatchResult({
+              tournamentId: this.tournamentId,
+              matchId: this.matchId,
+              winnerId: winnerId
+            });
+            
+            setTimeout(() => {
+              this.$router.push({ 
+                name: 'TournamentBracket', 
+                params: { id: this.tournamentId } 
+              });
+            }, 2000);
+          } catch (error) {
+            console.error('Błąd zgłaszania wyniku turnieju:', error);
+          }
+        }
       })
 
       chinczykService.onChatMessage((data) => {
@@ -578,7 +607,6 @@ export default {
   mounted() {
     this.setupSocketListeners()
     
-    // Sprawdź status połączenia socket
     const checkConnection = () => {
       const socket = chinczykService.getSocket()
       this.socketConnected = socket.connected

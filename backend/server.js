@@ -10,16 +10,19 @@ const { Server } = require('socket.io');
 const checkersController = require('./controllers/checkersController');
 const tictactoeController = require('./controllers/tictactoeController');
 const diceController = require('./controllers/diceController');
+const chinczykController = require('./controllers/chinczykController');
 //import handlerow socketa
 const setupGlobalChatHandler = require('./socketHandlers/globalchatHandler');
 const setupGameRoomChatHandler = require('./socketHandlers/gameRoomChatHandler');
 const setupGameSocketHandlers = require('./socketHandlers/gamehandler');
 const setupRoomsHandler = require('./socketHandlers/roomHandler');
 const setupDisconnectHandler = require('./socketHandlers/disconnectHandler');
+const setupTournamentSocketHandlers = require('./socketHandlers/tournamentHandler');
 
 //import routingu
 const authRoutes = require('./routes/authRoutes');
 const checkersRoutes = require('./routes/checkersRoutes');
+const chinczykRoutes = require('./routes/chinczykRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -32,6 +35,7 @@ const controllersByGameKey = {
   checkers: checkersController,
   tictactoe: tictactoeController,
   dice: diceController,
+  chinczyk: chinczykController,
 };
 
 // funkcja pomocnicza do konfiguracji cors (Z MAIN)
@@ -144,6 +148,9 @@ io.on('connection', (socket) => {
 
   // ===== UNIVERSAL ROOMS SOCKETS =====
   setupRoomsHandler(socket, io, controllersByGameKey, emitRoomsUpdated);
+
+  // ===== TOURNAMENT SOCKETS =====
+  setupTournamentSocketHandlers(io, socket, controllersByGameKey);
 
   // obsługa rozłączenia
   setupDisconnectHandler(socket, io, controllersByGameKey, emitRoomsUpdated);

@@ -8,31 +8,30 @@
   </section>
 
   <section class="playersJoinInfo" id="players">
-    <div class="players-grid">
-      <div id="Player1" class="player-slot">
+    <div class="players-grid" :class="{ 'multi-player': players.length > 2 }">
+      <div 
+        v-for="(player, idx) in players" 
+        :key="idx"
+        :id="`Player${idx + 1}`" 
+        class="player-slot"
+      >
         <div class="slot-photo"></div>
         <div class="slot-meta">
-          <div class="slot-name">{{ player0Label }}</div>
+          <div class="slot-name">{{ getPlayerLabel(idx) }}</div>
 
-          <button v-if="!hasPlayer0" class="slot-join" type="button" @click="onJoin(0)">
+          <button 
+            v-if="!hasPlayer(idx)" 
+            class="slot-join" 
+            type="button" 
+            @click="onJoin(idx)"
+          >
             Dolacz
           </button>
         </div>
       </div>
 
-      <div class="score">
+      <div v-if="players.length === 2" class="score">
         {{ score0 }} : {{ score1}}
-      </div>
-
-      <div id="Player2" class="player-slot">
-        <div class="slot-photo"></div>
-        <div class="slot-meta">
-          <div class="slot-name">{{ player1Label }}</div>
-
-          <button v-if="!hasPlayer1" class="slot-join" type="button" @click="onJoin(1)">
-            Dolacz
-          </button>
-        </div>
       </div>
     </div>
   </section>
@@ -97,7 +96,7 @@ const props = defineProps({
   score: { type: Array, default: () => [0, 0] },
   moves: { type: Array, required: true },
   gameId: { type: [String, Number], required: false },
-  players: { type: Array, default: () => [null, null] },
+  players: { type: Array, default: () => [null, null, null, null] },
 });
 
 const emit = defineEmits(["join"]);
@@ -139,6 +138,15 @@ const hasPlayer1 = computed(() => player1Norm.value.exists);
 
 const player0Label = computed(() => player0Norm.value.label);
 const player1Label = computed(() => player1Norm.value.label);
+
+// Funkcje pomocnicze dla wielu graczy
+function hasPlayer(idx) {
+  return normalizePlayer(props.players?.[idx]).exists;
+}
+
+function getPlayerLabel(idx) {
+  return normalizePlayer(props.players?.[idx]).label;
+}
 
 const isScrable = computed(() => {
   const id = (props.gameId ?? "").toString().toLowerCase();
@@ -200,6 +208,12 @@ function formatTime(time) {
   grid-template-columns: 1fr auto 1fr;
   column-gap: 48px;
   align-items: center;
+}
+
+.players-grid.multi-player {
+  grid-template-columns: repeat(2, minmax(300px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
 }
 
 .player-slot {

@@ -55,7 +55,7 @@ const checkLoginStatus = () => {
   isLoggedIn.value = !!userData
   if (!userData) {
     isChatOpen.value = false
-    unreadCount = 0
+    unreadCount.value = 0
   }
 }
 
