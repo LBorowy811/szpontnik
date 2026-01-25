@@ -1,3 +1,5 @@
+const { updateStats } = require('../controllers/rankingController');
+
 function setupGameSocketHandlers(socket, io, gameKey, controller, emitRoomsUpdated) {
     // createGame
     socket.on(`${gameKey}:createGame`, (payload, cb) => {
@@ -101,7 +103,7 @@ function setupGameSocketHandlers(socket, io, gameKey, controller, emitRoomsUpdat
     // move
     socket.on(`${gameKey}:move`, ({ gameId, ...moveData }, callback) => {
       if (!gameId) return callback?.({ ok: false, error: 'Brak gameId' });
-  
+
       const req = { params: { id: gameId }, body: { ...moveData } };
       const res = {
         status: (code) => {
@@ -113,13 +115,31 @@ function setupGameSocketHandlers(socket, io, gameKey, controller, emitRoomsUpdat
             return callback?.({ ok: false, error: data?.error || 'Błąd ruchu' });
           }
           callback?.({ ok: true, data });
-  
-          if (data?.game) io.to(`${gameKey}:${gameId}`).emit(`${gameKey}:state`, data.game);
-  
+
+          if (data?.game) {
+            io.to(`${gameKey}:${gameId}`).emit(`${gameKey}:state`, data.game);
+
+            // Zapisz statystyki dla gier rankingowych
+            const game = data.game;
+            if (game.ranked === true && (game.status === 'finished' || game.status === 'draw')) {
+              if (game.status === 'finished' && game.winnerIndex !== null && game.winnerIndex !== undefined) {
+                const winnerId = game.players[game.winnerIndex]?.userId;
+                const loserIndex = game.winnerIndex === 0 ? 1 : 0;
+                const loserId = game.players[loserIndex]?.userId;
+                if (winnerId) updateStats(winnerId, gameKey, 'win');
+                if (loserId) updateStats(loserId, gameKey, 'loss');
+              } else if (game.status === 'draw') {
+                for (const player of game.players) {
+                  if (player?.userId) updateStats(player.userId, gameKey, 'draw');
+                }
+              }
+            }
+          }
+
           emitRoomsUpdated(gameKey);
         },
       };
-  
+
       controller.makeMove(req, res);
     });
   }

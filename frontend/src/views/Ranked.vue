@@ -17,10 +17,16 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 
 const games = [
-  { name: "Szachy", img: new URL('../assets/home/szachy.png', import.meta.url).href },
+  { name: "Kości", img: new URL('../assets/home/kości.png', import.meta.url).href },
   { name: "Warcaby", img: new URL('../assets/home/warcaby.png', import.meta.url).href },
   { name: "Kółko i krzyżyk", img: new URL('../assets/home/kolko-i-krzyzyk.png', import.meta.url).href },
 ];
+
+const gameRoutes = {
+  "Kości": "/games/dice/rooms?ranked=true",
+  "Warcaby": "/games/checkers/rooms?ranked=true",
+  "Kółko i krzyżyk": "/games/tictactoe/rooms?ranked=true",
+};
 
 function openGame(game) {
   const path = gameRoutes[game.name];
