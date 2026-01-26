@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="chat">
     <div class="chat-header">Czat gry</div>
 
@@ -24,10 +24,10 @@
       <input
         v-model="text"
         @keydown.enter.prevent="sendMessage"
-        placeholder="Napisz wiadomość..."
-        aria-label="Wiadomość czatu"
+        placeholder="Napisz wiadomoĹ›Ä‡..."
+        aria-label="WiadomoĹ›Ä‡ czatu"
       />
-      <button @click="sendMessage" :disabled="!text.trim()">Wyślij</button>
+      <button @click="sendMessage" :disabled="!text.trim()">WyĹ›lij</button>
     </div>
   </div>
 </template>
@@ -98,7 +98,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #ffffff; /* white frame */
+  background: #ffffff; 
   border: 1px solid #eee;
   border-radius: 8px;
   margin-top: 8px;
@@ -167,3 +167,4 @@ export default {
 }
 .composer button:disabled { opacity: 0.6; cursor: default; }
 </style>
+

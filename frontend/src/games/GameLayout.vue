@@ -12,6 +12,7 @@
       <div 
         v-for="(player, idx) in players" 
         :key="idx"
+        v-if="!gameStarted || hasPlayer(idx)"
         :id="`Player${idx + 1}`" 
         class="player-slot"
       >
@@ -20,7 +21,7 @@
           <div class="slot-name">{{ getPlayerLabel(idx) }}</div>
 
           <button 
-            v-if="!hasPlayer(idx)" 
+            v-if="!hasPlayer(idx) && !gameStarted" 
             class="slot-join" 
             type="button" 
             @click="onJoin(idx)"
@@ -97,6 +98,7 @@ const props = defineProps({
   moves: { type: Array, required: true },
   gameId: { type: [String, Number], required: false },
   players: { type: Array, default: () => [null, null, null, null] },
+  gameStarted: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["join"]);
@@ -145,7 +147,12 @@ function hasPlayer(idx) {
 }
 
 function getPlayerLabel(idx) {
-  return normalizePlayer(props.players?.[idx]).label;
+  const norm = normalizePlayer(props.players?.[idx]);
+  // Jeśli gra się rozpoczęła i slot jest pusty, nie pokazuj "wolne miejsce"
+  if (props.gameStarted && !norm.exists) {
+    return "";
+  }
+  return norm.label;
 }
 
 const isScrable = computed(() => {
@@ -155,6 +162,9 @@ const isScrable = computed(() => {
 
 function formatCoords(pos) {
   if (!pos) return "";
+  // Jeśli to jest string (np. "DOM", "pole 5", "META 2"), zwróć bezpośrednio
+  if (typeof pos === 'string') return pos;
+  // Jeśli to obiekt z x,y (szachy, warcaby), formatuj jako współrzędne
   return `${pos.x},${pos.y}`;
 }
 
@@ -168,7 +178,8 @@ function formatPlayer(m) {
 
 function defaultMoveType(m) {
   if (m.type) return m.type;
-  return m.capturedId ? "bicie" : "ruch";
+  // Sprawdź captured (chinczyk) lub capturedId (inne gry)
+  return (m.captured || m.capturedId) ? "bicie" : "ruch";
 }
 
 function formatTime(time) {

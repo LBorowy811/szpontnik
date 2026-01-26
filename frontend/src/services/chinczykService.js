@@ -1,4 +1,4 @@
-import socket from './socket.js'
+﻿import socket from './socket.js'
 
 class ChinCzykService {
   constructor() {
@@ -7,14 +7,13 @@ class ChinCzykService {
     this.listeners = new Map()
   }
 
-  // zarządzanie pokojami
   createRoom(playerName, maxPlayers = 4) {
     return new Promise((resolve, reject) => {
       console.log('Socket connected:', socket.connected)
-      console.log('Wysyłam chinczyk:createRoom', { playerName, maxPlayers })
-      
+      console.log('WysyĹ‚am chinczyk:createRoom', { playerName, maxPlayers })
+
       socket.emit('chinczyk:createRoom', { playerName, maxPlayers }, (response) => {
-        console.log('Otrzymano odpowiedź:', response)
+        console.log('Otrzymano odpowiedĹş:', response)
         if (response && response.success) {
           this.currentRoom = response.roomId
           resolve(response)
@@ -22,7 +21,7 @@ class ChinCzykService {
           reject(response?.error || 'Brak odpowiedzi z serwera')
         }
       })
-      
+
       setTimeout(() => {
         reject('Timeout - brak odpowiedzi z serwera')
       }, 5000)
@@ -183,7 +182,7 @@ class ChinCzykService {
     players.forEach((player, idx) => {
       const color = colors[idx]
       const homes = homePositions[color]
-      
+
       pawns[color] = homes.map((pos, i) => ({
         id: `${color}-${i}`,
         color,
@@ -242,3 +241,4 @@ class ChinCzykService {
 }
 
 export default new ChinCzykService()
+

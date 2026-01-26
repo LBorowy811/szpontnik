@@ -1,4 +1,4 @@
-const gameUtils = require('../utils/gameUtils');
+﻿const gameUtils = require('../utils/gameUtils');
 
 const tournaments = new Map();
 
@@ -9,15 +9,15 @@ class TournamentController {
 
   createTournament({ name, gameType, creatorId, creatorName, maxPlayers = 4 }) {
     if (!this.supportedGames.includes(gameType)) {
-      return { ok: false, error: 'Nieobsługiwana gra' };
+      return { ok: false, error: 'NieobsĹ‚ugiwana gra' };
     }
 
     if (![4, 8].includes(maxPlayers)) {
-      return { ok: false, error: 'Turniej może mieć 4 lub 8 graczy' };
+      return { ok: false, error: 'Turniej moĹĽe mieÄ‡ 4 lub 8 graczy' };
     }
 
     const tournamentId = gameUtils.generateGameId();
-    
+
     const tournament = {
       id: tournamentId,
       name: name || `Turniej ${tournamentId.substring(0, 6)}`,
@@ -68,17 +68,17 @@ class TournamentController {
 
   joinTournament({ tournamentId, userId, username, socketId }) {
     const tournament = tournaments.get(tournamentId);
-    
+
     if (!tournament) {
       return { ok: false, error: 'Turniej nie istnieje' };
     }
 
     if (tournament.status !== 'waiting') {
-      return { ok: false, error: 'Turniej już się rozpoczął' };
+      return { ok: false, error: 'Turniej juĹĽ siÄ™ rozpoczÄ…Ĺ‚' };
     }
 
     if (tournament.players.length >= tournament.maxPlayers) {
-      return { ok: false, error: 'Turniej jest pełny' };
+      return { ok: false, error: 'Turniej jest peĹ‚ny' };
     }
 
     const existingPlayer = tournament.players.find(p => String(p.userId) === String(userId));
@@ -99,13 +99,13 @@ class TournamentController {
 
   startTournament(tournamentId) {
     const tournament = tournaments.get(tournamentId);
-    
+
     if (!tournament) {
       return { ok: false, error: 'Turniej nie istnieje' };
     }
 
     if (tournament.status !== 'waiting') {
-      return { ok: false, error: 'Turniej już się rozpoczął' };
+      return { ok: false, error: 'Turniej juĹĽ siÄ™ rozpoczÄ…Ĺ‚' };
     }
 
     if (tournament.players.length !== tournament.maxPlayers) {
@@ -134,7 +134,7 @@ class TournamentController {
 
   createMatchGame({ tournamentId, matchId, gameController }) {
     const tournament = tournaments.get(tournamentId);
-    
+
     if (!tournament) {
       return { ok: false, error: 'Turniej nie istnieje' };
     }
@@ -147,14 +147,18 @@ class TournamentController {
     console.log('[TOURNAMENT] createMatchGame:', { matchId, status: match.status, playersCount: match.players?.length });
 
     if (match.status !== 'waiting') {
-      return { ok: false, error: `Mecz już się rozpoczął lub nie jest gotowy (status: ${match.status})` };
-    }
-    
-    if (!match.players || match.players.length < 2) {
-      return { ok: false, error: 'Mecz nie ma wystarczającej liczby graczy' };
+      return { ok: false, error: `Mecz juĹĽ siÄ™ rozpoczÄ…Ĺ‚ lub nie jest gotowy (status: ${match.status})` };
     }
 
-    const game = gameController.createGameSocket({ roomName: `${tournament.name} - ${matchId}` });
+    if (!match.players || match.players.length < 2) {
+      return { ok: false, error: 'Mecz nie ma wystarczajÄ…cej liczby graczy' };
+    }
+
+    const game = gameController.createGameSocket({ 
+      roomName: `${tournament.name} - ${matchId}`,
+      tournamentId: tournamentId,
+      matchId: matchId
+    });
     match.gameId = game.id;
     match.status = 'in_progress';
 
@@ -163,7 +167,7 @@ class TournamentController {
 
   reportMatchResult({ tournamentId, matchId, winnerId }) {
     const tournament = tournaments.get(tournamentId);
-    
+
     if (!tournament) {
       return { ok: false, error: 'Turniej nie istnieje' };
     }
@@ -175,7 +179,7 @@ class TournamentController {
 
     const winner = match.players.find(p => String(p.userId) === String(winnerId));
     if (!winner) {
-      return { ok: false, error: 'Nieprawidłowy zwycięzca' };
+      return { ok: false, error: 'NieprawidĹ‚owy zwyciÄ™zca' };
     }
 
     match.winner = winner;
@@ -192,11 +196,11 @@ class TournamentController {
     if (tournament.currentRound === 'quarterfinals') {
       const qfIndex = bracket.quarterfinals.findIndex(m => m.id === matchId);
       const sfIndex = Math.floor(qfIndex / 2);
-      
+
       if (!bracket.semifinals[sfIndex].players) {
         bracket.semifinals[sfIndex].players = [];
       }
-      
+
       const alreadyInSemifinal = bracket.semifinals[sfIndex].players.some(p => String(p.userId) === String(winner.userId));
       if (!alreadyInSemifinal) {
         bracket.semifinals[sfIndex].players.push(winner);
@@ -215,7 +219,7 @@ class TournamentController {
       if (!bracket.final.players) {
         bracket.final.players = [];
       }
-      
+
       const alreadyInFinal = bracket.final.players.some(p => String(p.userId) === String(winner.userId));
       if (!alreadyInFinal) {
         bracket.final.players.push(winner);
@@ -236,46 +240,67 @@ class TournamentController {
 
   findMatch(tournament, matchId) {
     const bracket = tournament.bracket;
-    
+
     if (bracket.quarterfinals) {
       const qf = bracket.quarterfinals.find(m => m.id === matchId);
       if (qf) return qf;
     }
-    
+
     if (bracket.semifinals) {
       const sf = bracket.semifinals.find(m => m.id === matchId);
       if (sf) return sf;
     }
-    
+
     if (bracket.final && bracket.final.id === matchId) {
       return bracket.final;
     }
-    
+
     return null;
   }
 
   listTournaments({ gameType, status }) {
     let list = Array.from(tournaments.values());
-    
+
     if (gameType) {
       list = list.filter(t => t.gameType === gameType);
     }
-    
+
     if (status) {
       list = list.filter(t => t.status === status);
     }
-    
+
     return { ok: true, tournaments: list };
   }
 
   getTournament(tournamentId) {
     const tournament = tournaments.get(tournamentId);
-    
+
     if (!tournament) {
       return { ok: false, error: 'Turniej nie istnieje' };
     }
-    
+
     return { ok: true, tournament };
+  }
+
+  canPlayerJoinMatch(tournamentId, matchId, userId) {
+    const tournament = tournaments.get(tournamentId);
+
+    if (!tournament) {
+      return { ok: false, error: 'Turniej nie istnieje' };
+    }
+
+    const match = this.findMatch(tournament, matchId);
+    if (!match) {
+      return { ok: false, error: 'Mecz nie istnieje' };
+    }
+
+    const isPlayerInMatch = match.players.some(p => String(p.userId) === String(userId));
+
+    if (!isPlayerInMatch) {
+      return { ok: false, error: 'Nie jesteĹ› uczestnikiem tego meczu turniejowego' };
+    }
+
+    return { ok: true };
   }
 
   deleteTournament(tournamentId) {
@@ -285,3 +310,4 @@ class TournamentController {
 }
 
 module.exports = new TournamentController();
+

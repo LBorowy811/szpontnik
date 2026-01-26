@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <svg 
     class="pawn" 
     :class="{ 'selected': isSelected, 'movable': isMovable }"
@@ -73,3 +73,4 @@ export default {
   }
 }
 </style>
+

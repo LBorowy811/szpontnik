@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="dice-wrap">
     <button 
       class="roll-btn" 
@@ -6,8 +6,8 @@
       @click="rollDice" 
       aria-live="polite"
     >
-      <span v-if="!rolling && canRoll">Rzuć kostką</span>
-      <span v-else-if="rolling">Rzucam…</span>
+      <span v-if="!rolling && canRoll">RzuÄ‡ kostkÄ…</span>
+      <span v-else-if="rolling">Rzucamâ€¦</span>
       <span v-else>Czekaj...</span>
     </button>
 
@@ -177,14 +177,14 @@ export default {
   font-size: 16px;
 }
 
-.f1 { background:#1976d2; transform: rotateY(0deg) translateZ(24px); }   /* 1 front */
-.f2 { background:#43a047; transform: rotateY(90deg) translateZ(24px); }  /* 2 right */
-.f3 { background:#e53935; transform: rotateY(180deg) translateZ(24px); } /* 3 back */
-.f4 { background:#fbc02d; transform: rotateY(-90deg) translateZ(24px); }/* 4 left */
-.f5 { background:#5c6bc0; transform: rotateX(90deg) translateZ(24px); }  /* 5 top */
-.f6 { background:#8e24aa; transform: rotateX(-90deg) translateZ(24px); } /* 6 bottom */
+.f1 { background:#1976d2; transform: rotateY(0deg) translateZ(24px); }   
+.f2 { background:#43a047; transform: rotateY(90deg) translateZ(24px); }  
+.f3 { background:#e53935; transform: rotateY(180deg) translateZ(24px); } 
+.f4 { background:#fbc02d; transform: rotateY(-90deg) translateZ(24px); }
+.f5 { background:#5c6bc0; transform: rotateX(90deg) translateZ(24px); }  
+.f6 { background:#8e24aa; transform: rotateX(-90deg) translateZ(24px); } 
 
-/* drobne dekoracje - kropki zamiast liczb (opcjonalnie) */
+
 .face span {
   display: inline-block;
   transform: translateZ(6px);
@@ -211,3 +211,4 @@ export default {
   color: #222;
 }
 </style>
+

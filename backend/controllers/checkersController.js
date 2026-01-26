@@ -490,12 +490,14 @@ if (wantsCapture && hasFurtherCapture) {
 }
 
 
-function createGameSocket({ player1, player2, roomName, ranked = false } = {}) {
+function createGameSocket({ player1, player2, roomName, ranked = false, tournamentId, matchId } = {}) {
   const gameId = gameUtils.generateGameId();
 
   const newGame = {
     id: gameId,
     roomName: roomName || null,
+    tournamentId: tournamentId || null,
+    matchId: matchId || null,
     ranked: ranked,
     players: [], // tablica graczy, zamiast left/rigt
     maxPlayers: 2,
@@ -554,6 +556,19 @@ function assignColorsIfReady(game) {
 
 
 function joinGameSocket({ gameId, username, userId, socketId }) {
+  const game = games.get(gameId);
+  if (!game) return { ok: false, error: "Gra o podanym ID nie istnieje" };
+
+  // Jeśli to gra turniejowa i jeszcze się nie rozpoczęła, sprawdź czy gracz może dołączyć JAKO GRACZ
+  if (game.tournamentId && game.matchId && game.players.length < (game.maxPlayers || 2)) {
+    const tournamentController = require('./tournamentController');
+    const canJoin = tournamentController.canPlayerJoinMatch(game.tournamentId, game.matchId, userId);
+    
+    if (!canJoin.ok) {
+      return canJoin; // Zwróć błąd walidacji
+    }
+  }
+
   return gameUtils.joinGameSocketBase(games, { gameId, username, userId, socketId }, assignColorsIfReady);
 }
 

@@ -1,32 +1,29 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const chinczykController = require('../controllers/chinczykController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
-// Wszystkie endpointy wymagają autoryzacji
 router.use(authenticateToken);
 
-// Lista dostępnych pokoi
 router.get('/rooms', (req, res) => {
   try {
     const rooms = chinczykController.listRooms();
     res.json({ success: true, rooms });
   } catch (error) {
     console.error('Error listing chinczyk rooms:', error);
-    res.status(500).json({ success: false, error: 'Błąd serwera' });
+    res.status(500).json({ success: false, error: 'BĹ‚Ä…d serwera' });
   }
 });
 
-// Informacje o konkretnym pokoju
 router.get('/rooms/:roomId', (req, res) => {
   try {
     const { roomId } = req.params;
     const room = chinczykController.getRoom(roomId);
-    
+
     if (!room) {
-      return res.status(404).json({ success: false, error: 'Pokój nie istnieje' });
+      return res.status(404).json({ success: false, error: 'PokĂłj nie istnieje' });
     }
-    
+
     res.json({ 
       success: true, 
       room: {
@@ -40,8 +37,9 @@ router.get('/rooms/:roomId', (req, res) => {
     });
   } catch (error) {
     console.error('Error getting chinczyk room:', error);
-    res.status(500).json({ success: false, error: 'Błąd serwera' });
+    res.status(500).json({ success: false, error: 'BĹ‚Ä…d serwera' });
   }
 });
 
 module.exports = router;
+

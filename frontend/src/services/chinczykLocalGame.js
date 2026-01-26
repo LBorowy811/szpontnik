@@ -1,8 +1,8 @@
-
+﻿
 class ChinczykLocalGame {
   constructor() {
     this.colors = ['red', 'blue', 'green', 'yellow']
-    
+
     this.mainPath = [
       { r: 4, c: 0 },
       { r: 4, c: 1 }, { r: 4, c: 2 }, { r: 4, c: 3 }, { r: 4, c: 4 },
@@ -54,7 +54,7 @@ class ChinczykLocalGame {
     players.forEach((player, idx) => {
       const color = this.colors[idx]
       const homes = this.homePositions[color]
-      
+
       pawns[color] = homes.map((pos, i) => ({
         id: `${color}-${i}`,
         color,
@@ -127,9 +127,9 @@ class ChinczykLocalGame {
     if (pawn.pathPosition >= 0 && pawn.pathPosition < 40) {
       const pathToGoalEntry = this.startPositions[color] - 1
       const normalizedEntry = pathToGoalEntry < 0 ? pathToGoalEntry + 40 : pathToGoalEntry
-      
+
       const absolutePosition = (this.startPositions[color] + pawn.pathPosition) % 40
-      
+
       let stepsToGoalEntry
       if (absolutePosition <= normalizedEntry) {
         stepsToGoalEntry = normalizedEntry - absolutePosition
@@ -154,19 +154,19 @@ class ChinczykLocalGame {
 
   movePawn(pawnId) {
     if (!this.gameState || this.gameState.currentDice === null) {
-      return { success: false, error: 'Najpierw rzuć kostką' }
+      return { success: false, error: 'Najpierw rzuÄ‡ kostkÄ…' }
     }
 
     const color = this.colors[this.gameState.currentTurn]
     const pawn = this.gameState.pawns[color].find(p => p.id === pawnId)
 
     if (!pawn) {
-      return { success: false, error: 'Nieprawidłowy pionek' }
+      return { success: false, error: 'NieprawidĹ‚owy pionek' }
     }
 
     const movablePawns = this.getMovablePawns(this.gameState.currentTurn, this.gameState.currentDice)
     if (!movablePawns.find(p => p.id === pawnId)) {
-      return { success: false, error: 'Nie możesz ruszyć tego pionka' }
+      return { success: false, error: 'Nie moĹĽesz ruszyÄ‡ tego pionka' }
     }
 
     const diceValue = this.gameState.currentDice
@@ -182,7 +182,7 @@ class ChinczykLocalGame {
       const absolutePosition = (this.startPositions[color] + pawn.pathPosition) % 40
       const pathToGoalEntry = this.startPositions[color] - 1
       const normalizedEntry = pathToGoalEntry < 0 ? pathToGoalEntry + 40 : pathToGoalEntry
-      
+
       let stepsToGoalEntry
       if (absolutePosition <= normalizedEntry) {
         stepsToGoalEntry = normalizedEntry - absolutePosition
@@ -196,7 +196,7 @@ class ChinczykLocalGame {
           pawn.goalPosition = goalPos
           pawn.position = this.goalPaths[color][goalPos]
           pawn.pathPosition = -1
-          
+
           if (goalPos === 3) {
             pawn.inGoal = true
           }
@@ -212,7 +212,7 @@ class ChinczykLocalGame {
       if (newGoalPos < 4) {
         pawn.goalPosition = newGoalPos
         pawn.position = this.goalPaths[color][newGoalPos]
-        
+
         if (newGoalPos === 3) {
           pawn.inGoal = true
         }
@@ -239,13 +239,13 @@ class ChinczykLocalGame {
 
   checkCapture(movedPawn, currentColor) {
     const pos = movedPawn.position
-    
+
     for (const color in this.gameState.pawns) {
       if (color === currentColor) continue
-      
+
       for (const pawn of this.gameState.pawns[color]) {
         if (pawn.inHome || pawn.inGoal) continue
-        
+
         if (pawn.position.r === pos.r && pawn.position.c === pos.c) {
           const homes = this.homePositions[color]
           const homeIdx = parseInt(pawn.id.split('-')[1])
@@ -257,7 +257,7 @@ class ChinczykLocalGame {
         }
       }
     }
-    
+
     return false
   }
 
@@ -265,12 +265,12 @@ class ChinczykLocalGame {
     for (let i = 0; i < this.gameState.players.length; i++) {
       const color = this.colors[i]
       const pawns = this.gameState.pawns[color]
-      
+
       if (pawns.every(p => p.inGoal)) {
         return i
       }
     }
-    
+
     return null
   }
 
@@ -284,3 +284,4 @@ class ChinczykLocalGame {
 }
 
 export default new ChinczykLocalGame()
+

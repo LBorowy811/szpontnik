@@ -1,4 +1,4 @@
-const tournamentController = require('../controllers/tournamentController');
+﻿const tournamentController = require('../controllers/tournamentController');
 
 function setupTournamentSocketHandlers(io, socket, gameControllers) {
   socket.on('tournament:create', ({ name, gameType, userId, username, maxPlayers }, callback) => {
@@ -16,9 +16,9 @@ function setupTournamentSocketHandlers(io, socket, gameControllers) {
 
     const room = `tournament:${result.tournament.id}`;
     socket.join(room);
-    
+
     io.emit('tournament:list', tournamentController.listTournaments({}));
-    
+
     callback?.(result);
   });
 
@@ -36,29 +36,29 @@ function setupTournamentSocketHandlers(io, socket, gameControllers) {
 
     const room = `tournament:${tournamentId}`;
     socket.join(room);
-    
+
     io.to(room).emit('tournament:update', result.tournament);
-    
+
     io.emit('tournament:list', tournamentController.listTournaments({}));
-    
+
     callback?.(result);
   });
 
   socket.on('tournament:start', ({ tournamentId, userId }, callback) => {
     const tournamentResult = tournamentController.getTournament(tournamentId);
-    
+
     if (!tournamentResult.ok) {
       return callback?.(tournamentResult);
     }
 
     const tournament = tournamentResult.tournament;
-    
+
     if (String(tournament.creatorId) !== String(userId)) {
-      return callback?.({ ok: false, error: 'Tylko twórca może rozpocząć turniej' });
+      return callback?.({ ok: false, error: 'Tylko twĂłrca moĹĽe rozpoczÄ…Ä‡ turniej' });
     }
 
     const result = tournamentController.startTournament(tournamentId);
-    
+
     if (!result.ok) {
       return callback?.(result);
     }
@@ -66,7 +66,7 @@ function setupTournamentSocketHandlers(io, socket, gameControllers) {
     const room = `tournament:${tournamentId}`;
     io.to(room).emit('tournament:update', result.tournament);
     io.emit('tournament:list', tournamentController.listTournaments({}));
-    
+
     callback?.(result);
   });
 
@@ -83,22 +83,22 @@ function setupTournamentSocketHandlers(io, socket, gameControllers) {
 
     const room = `tournament:${tournamentId}`;
     io.to(room).emit('tournament:update', result.tournament);
-    
+
     callback?.(result);
   });
 
   socket.on('tournament:createMatch', ({ tournamentId, matchId }, callback) => {
     const tournamentResult = tournamentController.getTournament(tournamentId);
-    
+
     if (!tournamentResult.ok) {
       return callback?.(tournamentResult);
     }
 
     const tournament = tournamentResult.tournament;
     const gameController = gameControllers[tournament.gameType];
-    
+
     if (!gameController) {
-      return callback?.({ ok: false, error: 'Nieobsługiwana gra' });
+      return callback?.({ ok: false, error: 'NieobsĹ‚ugiwana gra' });
     }
 
     const result = tournamentController.createMatchGame({
@@ -113,7 +113,7 @@ function setupTournamentSocketHandlers(io, socket, gameControllers) {
 
     const room = `tournament:${tournamentId}`;
     io.to(room).emit('tournament:update', result.tournament);
-    
+
     callback?.({ ok: true, gameId: result.gameId, tournament: result.tournament });
   });
 
@@ -132,3 +132,4 @@ function setupTournamentSocketHandlers(io, socket, gameControllers) {
 }
 
 module.exports = setupTournamentSocketHandlers;
+

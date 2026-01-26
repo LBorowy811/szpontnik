@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="board">
     <div
       v-for="(cell, index) in cells"
@@ -50,12 +50,10 @@ export default {
         return this.baseBoard;
       }
 
-      // Aktualizuj planszę o pionki z gameState
       return this.baseBoard.map((cell, index) => {
         const r = Math.floor(index / this.size);
         const c = index % this.size;
-        
-        // Znajdź pionka na tej pozycji
+
         let pawn = null;
         if (this.gameState.pawns) {
           for (const color in this.gameState.pawns) {
@@ -310,3 +308,4 @@ export default {
   .board { transform: scale(0.9); transform-origin: top left; }
 }
 </style>
+

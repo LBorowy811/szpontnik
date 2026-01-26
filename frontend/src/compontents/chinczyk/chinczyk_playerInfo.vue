@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="player-info" :class="{ active: isActive }">
     <div class="color-box" :style="{ backgroundColor: color }"></div>
     <div class="player-details">
-      <span class="player-name">{{ player.name }}</span>
+      <span class="player-name">{{ player.username || player.name }}</span>
       <span class="pawns-count">Pionki w mecie: {{ pawnsInGoal }}/4</span>
     </div>
-    <div v-if="isActive" class="active-indicator">▶</div>
+    <div v-if="isActive" class="active-indicator">â–¶</div>
   </div>
 </template>
 
@@ -86,3 +86,5 @@ export default {
   50% { opacity: 0.5; }
 }
 </style>
+
+

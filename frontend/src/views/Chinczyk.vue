@@ -127,14 +127,27 @@
         </div>
       </div>
 
+      <!-- LAYOUT UPDATED: 2026-01-25 23:55 - Czat po lewej, Plansza środek, Sidebar prawo -->
       <div class="game-board">
-        <Board 
-          :gameState="gameState"
-          :selectedPawn="selectedPawn"
-          :movablePawns="movablePawns"
-          @pawn-clicked="onPawnClicked"
-        />
-        
+        <!-- Czat po lewej -->
+        <div class="chat-column" v-if="!isLocalGame">
+          <Chat 
+            :messages="chatMessages"
+            @send-message="sendChatMessage"
+          />
+        </div>
+
+        <!-- Plansza na środku -->
+        <div class="board-center">
+          <Board 
+            :gameState="gameState"
+            :selectedPawn="selectedPawn"
+            :movablePawns="movablePawns"
+            @pawn-clicked="onPawnClicked"
+          />
+        </div>
+
+        <!-- Sidebar po prawej - tura, kostka, gracze -->
         <div class="sidebar">
           <!-- Informacja o statusie gry -->
           <div v-if="!gameStarted" class="waiting-panel">
@@ -191,13 +204,38 @@
               :pawnsInGoal="getPawnsInGoal(idx)"
             />
           </div>
+        </div>
+      </div>
 
-          <!-- Czat (tylko w grze online) -->
-          <Chat 
-            v-if="!isLocalGame"
-            :messages="chatMessages"
-            @send-message="sendChatMessage"
-          />
+      <!-- Ostatnie ruchy na dole -->
+      <div v-if="gameStarted" class="moves-section">
+        <h3>Ostatnie ruchy</h3>
+        <div class="moves-table-wrap">
+          <table class="moves-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Gracz</th>
+                <th>Z</th>
+                <th>Do</th>
+                <th>Typ</th>
+                <th>Czas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="moves.length === 0">
+                <td colspan="6" style="text-align: center; color: #999;">Brak ruchów</td>
+              </tr>
+              <tr v-for="(move, idx) in moves.slice().reverse()" :key="move.id || idx">
+                <td>{{ move.id }}</td>
+                <td>{{ move.playerName }}</td>
+                <td>{{ move.from }}</td>
+                <td>{{ move.to }}</td>
+                <td>{{ move.captured ? 'bicie' : 'ruch' }}</td>
+                <td>{{ formatMoveTime(move.time) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -261,6 +299,7 @@ export default {
       selectedPawn: null,
       movablePawns: [],
       winner: null,
+      moves: [],
       
       chatMessages: [],
       
@@ -493,6 +532,17 @@ export default {
       return pawns.filter(p => p.inGoal).length
     },
 
+    formatMoveTime(time) {
+      if (!time) return '';
+      const d = new Date(time);
+      if (isNaN(d.getTime())) return time;
+      return d.toLocaleTimeString('pl-PL', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    },
+
     sendChatMessage(message) {
       chinczykService.sendChatMessage(message)
     },
@@ -517,6 +567,7 @@ export default {
 
       chinczykService.onGameStateUpdate((data) => {
         this.gameState = data.gameState
+        this.moves = Array.isArray(data.gameState?.moves) ? data.gameState.moves : []
       })
 
       chinczykService.onDiceRolled((data) => {
@@ -531,6 +582,7 @@ export default {
 
       chinczykService.onPawnMoved((data) => {
         this.gameState = data.gameState
+        this.moves = Array.isArray(data.gameState?.moves) ? data.gameState.moves : []
         this.currentDice = null
         this.movablePawns = []
         
@@ -1013,10 +1065,17 @@ export default {
 
 .game-board {
   display: flex;
+  flex-direction: row;
   gap: 30px;
   align-items: flex-start;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  max-width: 1800px;
+  margin: 0 auto 30px;
+}
+
+.board-center {
+  flex-shrink: 0;
 }
 
 .sidebar {
@@ -1025,6 +1084,68 @@ export default {
   gap: 20px;
   min-width: 320px;
   max-width: 380px;
+  flex-shrink: 0;
+}
+
+.chat-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  max-width: 380px;
+  flex-shrink: 0;
+}
+
+.moves-section {
+  max-width: 1600px;
+  margin: 30px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.moves-section h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.2em;
+}
+
+.moves-table-wrap {
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.moves-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.moves-table th,
+.moves-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.moves-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #555;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.moves-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.moves-table td:first-child,
+.moves-table th:first-child {
+  width: 50px;
+  text-align: center;
 }
 
 .waiting-panel {
