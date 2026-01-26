@@ -70,7 +70,7 @@
       </div>
     </section>
     
-    <div v-if="state.status !== 'ongoing'" class="end-modal-backdrop">
+    <div v-if="state.status !== 'ongoing' && !isTournamentMatch" class="end-modal-backdrop">
       <div class="end-modal">
         <h2 class="end-title">{{ endTitle }}</h2>
         <p class="end-subtitle" v-if="endMessage">{{ endMessage }}</p>
@@ -89,15 +89,24 @@
         </div>
       </div>
     </div>
+    
+    <div v-if="state.status !== 'ongoing' && isTournamentMatch" class="end-modal-backdrop">
+      <div class="end-modal">
+        <h2 class="end-title">{{ endTitle }}</h2>
+        <p class="end-subtitle" v-if="endMessage">{{ endMessage }}</p>
+        <p class="end-subtitle">Przekierowywanie do turnieju...</p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import BoardTicTacToe from "@/components/tictactoe/tictactoeBoard.vue";
 import RoomChat from "@/components/common/RoomChat.vue";
 import socket from "@/services/socket";
+import { reportMatchResult } from "@/services/tournamentService";
 
 const route = useRoute();
 const router = useRouter();
@@ -123,6 +132,13 @@ const state = reactive({
 
 const score0 = computed(() => score.value[0] ?? 0);
 const score1 = computed(() => score.value[1] ?? 0);
+
+const isTournamentMatch = computed(() => {
+  return !!(route.query.tournament && route.query.matchId);
+});
+
+const tournamentId = computed(() => route.query.tournament);
+const matchId = computed(() => route.query.matchId);
 
 function normalizePlayer(p) {
   if (!p) return null;
@@ -223,6 +239,36 @@ function setupSocketListeners() {
     }
   });
 }
+
+watch(() => state.status, async (newStatus) => {
+  if (!isTournamentMatch.value) return;
+  if (newStatus !== 'finished' && newStatus !== 'draw') return;
+  
+  const user = getLoggedUserOrNull();
+  if (!user?.id) return;
+  
+  let winnerId = null;
+  if (newStatus === 'finished' && state.winnerIndex !== null) {
+    winnerId = state.players[state.winnerIndex]?.userId;
+  }
+  
+  try {
+    await reportMatchResult({
+      tournamentId: tournamentId.value,
+      matchId: matchId.value,
+      winnerId: winnerId
+    });
+    
+    setTimeout(() => {
+      router.push({ 
+        name: 'TournamentBracket', 
+        params: { id: tournamentId.value } 
+      });
+    }, 2000);
+  } catch (error) {
+    console.error('Błąd zgłaszania wyniku turnieju:', error);
+  }
+});
 
 function socketCreateGame() {
   return new Promise((resolve, reject) => {

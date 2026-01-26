@@ -91,6 +91,7 @@ const isRanked = computed(() => route.query.ranked === 'true');
 const gameLabel = computed(() => {
   if (gameKey.value === "checkers") return "Warcaby";
   if (gameKey.value === "tictactoe") return "Kółko i krzyżyk";
+  if (gameKey.value === "chinczyk") return "Chińczyk";
   if (gameKey.value === "dice") return "Kości";
   if (gameKey.value === "pictionary") return "Kalambury";
   return gameKey.value;

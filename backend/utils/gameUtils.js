@@ -40,13 +40,13 @@ function generateGameId() {
       const minPlayers = game.minPlayers || 2;
       const maxPlayers = game.maxPlayers || 2;
   
-      rooms.push({
-        id,
-        roomName: game.roomName || null,
-        ranked: game.ranked || false,
-        status: playersCount < minPlayers ? "waiting" : (game.status || "playing"),
-        playersCount,
-        maxPlayers,
+    rooms.push({
+      id,
+      roomName: game.roomName || null,
+      ranked: game.ranked || false,
+      status: (playersCount < maxPlayers && !game.gameStarted) ? "waiting" : (game.status || "playing"),
+      playersCount,
+      maxPlayers,
         players: game.players.map(p => ({
           username: p.username,
           userId: p.userId,

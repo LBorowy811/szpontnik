@@ -53,7 +53,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { authAPI } from '../services/api'
-import socket from '../services/socket'
+import { connectSocket } from '../services/socket'
 
 // zmienne do przechowywania danych formularza
 const login = ref('')
@@ -90,9 +90,9 @@ const handleLogin = async () => {
       localStorage.setItem('user', JSON.stringify(response.data.user))
       window.dispatchEvent(new Event('userLogin'))
       
-      if (socket && !socket.connected) {
-        socket.connect()
-      }
+      // Połącz socket po zalogowaniu
+      console.log('✅ Zalogowano - łączenie socket...')
+      connectSocket()
     }
     
     // timeout przed przekierowaniem (do wyświetlenia komunikatu)
